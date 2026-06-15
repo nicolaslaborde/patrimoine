@@ -1,0 +1,268 @@
+Voici une proposition de rubriques pour renseigner le poste **“Charges annuelles”** dans une application de patrimoine.
+
+## 1. Logement / Immobilier
+
+### Résidence principale
+
+* Taxe foncière
+* Taxe d’habitation, si applicable
+* Assurance habitation
+* Charges de copropriété
+* Entretien courant
+* Travaux récurrents
+* Contrat chaudière / chauffage
+* Eau
+* Électricité
+* Gaz
+* Fioul / bois / pellets
+* Internet / téléphone fixe
+* Alarme / télésurveillance
+* Jardin / piscine / entretien extérieur
+
+### Biens locatifs
+
+* Taxe foncière
+* Assurance propriétaire non occupant, PNO
+* Charges de copropriété non récupérables
+* Frais de syndic
+* Frais de gestion locative
+* Assurance loyers impayés
+* Entretien / réparations
+* Diagnostics obligatoires
+* Vacance locative estimée
+* Frais bancaires liés au prêt
+* Intérêts d’emprunt
+* Assurance emprunteur
+
+### Résidence secondaire
+
+* Taxe foncière
+* Assurance habitation
+* Charges de copropriété
+* Énergie
+* Eau
+* Internet
+* Gardiennage
+* Entretien jardin / piscine
+* Déplacements liés au bien
+
+---
+
+## 2. Véhicules
+
+Pour chaque véhicule : voiture, moto, scooter, bateau, camping-car.
+
+* Assurance
+* Carburant
+* Recharge électrique
+* Entretien / révisions
+* Pneus
+* Contrôle technique
+* Stationnement / garage
+* Péages
+* Crédit auto
+* LOA / LLD
+* Assistance / garantie
+* Carte grise ou taxes éventuelles
+
+---
+
+## 3. Assurances personnelles
+
+* Responsabilité civile
+* Assurance habitation
+* Assurance auto / moto
+* Mutuelle santé
+* Prévoyance
+* Garantie accidents de la vie, GAV
+* Assurance décès
+* Assurance dépendance
+* Protection juridique
+* Assurance scolaire
+* Assurance animaux
+
+---
+
+## 4. Santé
+
+* Mutuelle
+* Reste à charge médical moyen
+* Médecins / spécialistes
+* Dentaire
+* Optique
+* Audition
+* Médicaments non remboursés
+* Aide à domicile / soins réguliers
+
+---
+
+## 5. Vie courante
+
+* Courses alimentaires
+* Produits d’entretien
+* Habillement
+* Coiffeur / esthétique
+* Téléphone mobile
+* Internet
+* Abonnements TV / streaming
+* Presse / logiciels
+* Sport / loisirs
+* Restaurants
+* Vacances
+* Cadeaux
+* Animaux domestiques
+
+---
+
+## 6. Enfants / famille
+
+* École / frais de scolarité
+* Cantine
+* Garderie
+* Crèche / nounou
+* Activités sportives
+* Activités culturelles
+* Vêtements
+* Santé
+* Pension alimentaire versée
+* Aide familiale régulière
+* Études supérieures
+
+---
+
+## 7. Impôts et fiscalité
+
+* Impôt sur le revenu
+* Prélèvements sociaux
+* CSG / CRDS
+* Taxe foncière
+* IFI, si applicable
+* CFE, si activité ou SCI concernée
+* Impôts locaux divers
+* Frais de comptable
+* Frais de conseil fiscal
+
+---
+
+## 8. Crédits et dettes
+
+Même si les crédits peuvent avoir leur propre rubrique, on peut les rappeler dans les charges annuelles.
+
+* Mensualités de prêt immobilier
+* Mensualités de crédit consommation
+* Crédit auto
+* Découvert bancaire
+* Dettes familiales
+* Pensions ou rentes versées
+* Intérêts annuels
+* Assurance emprunteur
+
+---
+
+## 9. Frais bancaires et placements
+
+* Frais de tenue de compte
+* Carte bancaire
+* Frais de courtage
+* Frais de gestion assurance-vie
+* Frais PEA / compte-titres
+* Frais SCI
+* Frais de coffre bancaire
+* Abonnements bancaires
+
+---
+
+## 10. Patrimoine mobilier / objets de valeur
+
+* Assurance objets de valeur
+* Coffre bancaire
+* Entretien bijoux / montres
+* Conservation tableaux / antiquités
+* Frais d’expertise
+* Frais de garde-meuble
+* Frais de transport / stockage
+
+---
+
+## 11. Professionnel / activité indépendante
+
+À prévoir si la personne a une activité indépendante, une SCI ou une micro-entreprise.
+
+* Comptable
+* Assurance professionnelle
+* Banque professionnelle
+* Logiciels
+* Site internet
+* Hébergement
+* Matériel
+* Cotisations sociales
+* CFE
+* Frais administratifs
+* Déplacements professionnels
+
+---
+
+## 12. Charges exceptionnelles ou provisionnées
+
+Très utile pour ne pas sous-estimer le budget annuel.
+
+* Travaux prévus
+* Remplacement chaudière
+* Remplacement électroménager
+* Réfection toiture
+* Gros entretien véhicule
+* Frais juridiques
+* Frais de succession
+* Frais de notaire
+* Aide familiale ponctuelle
+* Imprévus
+
+---
+
+## Champs utiles pour chaque charge
+
+Pour chaque fiche “charge annuelle”, je te conseille de prévoir ces champs :
+
+| Champ                     | Exemple                                 |
+| ------------------------- | --------------------------------------- |
+| Nom de la charge          | Assurance habitation                    |
+| Catégorie                 | Immobilier                              |
+| Bien concerné             | Maison principale / appartement locatif |
+| Montant                   | 850 €                                   |
+| Périodicité               | Mensuelle / trimestrielle / annuelle    |
+| Montant annuel calculé    | 850 €                                   |
+| Payeur                    | Nicolas / indivision / SCI              |
+| Mode de paiement          | Prélèvement / CB / virement             |
+| Déductible fiscalement    | Oui / Non / Partiellement               |
+| Récupérable sur locataire | Oui / Non / Partiellement               |
+| Date d’échéance           | 15 mars                                 |
+| Fournisseur               | Allianz                                 |
+| Contrat / référence       | N° contrat                              |
+| Lien web                  | Espace client                           |
+| Commentaire               | À renégocier en 2026                    |
+| Justificatif              | PDF / facture / avis d’impôt            |
+
+---
+
+## Structure simple que je te conseille
+
+Dans ton application, tu pourrais avoir ces grandes familles :
+
+1. **Immobilier**
+2. **Véhicules**
+3. **Assurances**
+4. **Santé**
+5. **Vie courante**
+6. **Famille**
+7. **Impôts**
+8. **Crédits**
+9. **Banque / placements**
+10. **Professionnel / SCI**
+11. **Charges exceptionnelles**
+12. **Autres charges**
+
+Et pour chaque charge, prévoir un bouton :
+
+**Mensuel / Trimestriel / Annuel**
+
+avec calcul automatique du montant annuel.
