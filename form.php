@@ -159,14 +159,16 @@ renderHeader(($id ? 'Modifier' : 'Ajouter') . ' - ' . $schema['label']);
     </section>
   <?php endif; ?>
 
-  <details class="form-band" open>
-    <summary>2. Informations détaillées et mémo</summary>
-    <div class="form-grid">
-      <?php foreach ($schema['niveau2'] as $field => $def): ?>
-        <?= renderField($field, $def, ($entry['niveau2'] ?? [])[$field] ?? null, 'niveau2', false) ?>
-      <?php endforeach; ?>
-    </div>
-  </details>
+  <?php if (!empty($schema['niveau2'])): ?>
+    <details class="form-band" open>
+      <summary>2. Informations détaillées et mémo</summary>
+      <div class="form-grid">
+        <?php foreach ($schema['niveau2'] as $field => $def): ?>
+          <?= renderField($field, $def, ($entry['niveau2'] ?? [])[$field] ?? null, 'niveau2', false) ?>
+        <?php endforeach; ?>
+      </div>
+    </details>
+  <?php endif; ?>
 
   <details class="form-band" open>
     <summary>Liens web</summary>

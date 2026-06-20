@@ -141,12 +141,14 @@ function appSchema(): array
             ],
             'niveau2' => [
                 'description' => field('Description', 'textarea'),
+                'montantVerse' => field('Montant versé', 'number'),
+                'beneficiaires' => field('Bénéficiaires', 'textarea'),
             ],
             'typeSchemas' => mobilierFinancierTypeSchemas(),
         ],
         'fiscalite' => [
             'label' => 'Fiscalité',
-            'types' => ['Avis / déclaration IR', 'Prélèvement à la source', 'IFI', 'Revenus fonciers', 'Plus-value immobilière', 'Déficit foncier reportable', 'Crédit ou réduction d’impôt', 'Taxe foncière', 'Autre information fiscale'],
+            'types' => ['Impôt sur le revenu', 'Avis / déclaration IR', 'Prélèvement à la source', 'IFI', 'Revenus fonciers', 'Plus-value immobilière', 'Déficit foncier reportable', 'Crédit ou réduction d’impôt', 'Taxe foncière', 'Autre information fiscale'],
             'niveau1Required' => ['type', 'titre', 'annee'],
             'niveau1' => [
                 'annee' => field('Année', 'number', true),
@@ -407,7 +409,10 @@ function immobilierTypeSchemas(): array
                 'prixAchat' => field('Prix d’achat', 'number'),
                 'fraisNotaire' => field('Frais de notaire', 'number'),
                 'travauxRealises' => field('Travaux réalisés', 'number'),
+                'loyer' => field('Loyer', 'number', false, [], true, 'loyer'),
+                'chargesNonRecuperables' => field('Charges non récupérables', 'number', false, [], true, 'chargesNonRecuperables'),
                 'taxeFonciere' => field('Taxe foncière', 'number', false, [], true, 'taxeFonciere'),
+                'assurancePNO' => field('Assurance propriétaire', 'number', false, [], true, 'assurancePNO'),
             ],
         ],
         'Résidence secondaire' => [
@@ -429,8 +434,11 @@ function immobilierTypeSchemas(): array
                 'prixAchat' => field('Prix d’achat', 'number'),
                 'fraisNotaire' => field('Frais de notaire', 'number'),
                 'travauxRealises' => field('Travaux réalisés', 'number'),
+                'loyer' => field('Loyer', 'number', false, [], true, 'loyer'),
+                'chargesNonRecuperables' => field('Charges non récupérables', 'number', false, [], true, 'chargesNonRecuperables'),
                 'taxeFonciere' => field('Taxe foncière', 'number', false, [], true, 'taxeFonciere'),
                 'assurancePNO' => field('Assurance propriétaire', 'number', false, [], true, 'assurancePNO'),
+                'regimeFiscal' => field('Régime fiscal', 'select', false, ['Micro-foncier', 'Réel foncier', 'Micro-BIC', 'LMNP réel', 'LMP', 'SCI IR', 'SCI IS', 'Autre']),
             ],
         ],
         'Bien locatif nu' => $locatif,
@@ -457,6 +465,10 @@ function immobilierTypeSchemas(): array
                 'surfaceM2' => field('Surface m²', 'number'),
                 'dateAcquisition' => field('Date d’acquisition', 'date'),
                 'prixAchat' => field('Prix d’achat', 'number'),
+                'loyer' => field('Loyer', 'number', false, [], true, 'loyer'),
+                'chargesNonRecuperables' => field('Charges non récupérables', 'number', false, [], true, 'chargesNonRecuperables'),
+                'assurancePNO' => field('Assurance propriétaire', 'number', false, [], true, 'assurancePNO'),
+                'regimeFiscal' => field('Régime fiscal', 'select', false, ['Micro-foncier', 'Réel foncier', 'Micro-BIC', 'LMNP réel', 'LMP', 'SCI IR', 'SCI IS', 'Autre']),
                 'taxeFonciere' => field('Taxe foncière', 'number', false, [], true, 'taxeFonciere'),
             ],
         ],
@@ -552,6 +564,21 @@ function mobilierFinancierTypeSchemas(): array
 function fiscaliteTypeSchemas(): array
 {
     return [
+        'Impôt sur le revenu' => [
+            'niveau1Required' => ['annee', 'revenuFiscalReference', 'nombrePartsFiscales'],
+            'niveau1' => [
+                'annee' => field('Année', 'number', true),
+                'revenuFiscalReference' => field('Revenu fiscal de référence', 'number', true),
+                'nombrePartsFiscales' => field('Nombre de parts fiscales', 'number', true),
+                'tauxMarginalImposition' => field('Taux marginal d’imposition (%)', 'number'),
+                'ifiApplicable' => field('IFI applicable', 'select', false, ['oui', 'non', 'à vérifier']),
+            ],
+            'niveau2' => [
+                'numeroFiscal' => field('Numéro fiscal', 'text'),
+                'prelevementsSociaux' => field('Prélèvements sociaux', 'number'),
+                'revenusFonciersImposables' => field('Revenus fonciers imposables', 'number'),
+            ],
+        ],
         'Avis / déclaration IR' => [
             'niveau1Required' => ['annee', 'revenuFiscalReference', 'nombrePartsFiscales'],
             'niveau1' => [
@@ -696,7 +723,7 @@ function schemaFor(string $rubrique): array
     if (!isset($schema[$rubrique])) {
         throw new InvalidArgumentException('Rubrique inconnue.');
     }
-    return $schema[$rubrique];
+    return pruneSchemaTypesForObservedData($rubrique, $schema[$rubrique]);
 }
 
 function schemaForFiche(string $rubrique, string $type): array
@@ -710,5 +737,151 @@ function schemaForFiche(string $rubrique, string $type): array
     $schema['niveau1Required'] = array_values(array_unique(array_merge($schema['niveau1Required'] ?? [], $typeSchema['niveau1Required'] ?? [])));
     $schema['niveau1'] = array_replace($schema['niveau1'] ?? [], $typeSchema['niveau1'] ?? []);
     $schema['niveau2'] = array_replace($schema['niveau2'] ?? [], $typeSchema['niveau2'] ?? []);
+    return pruneSchemaFieldsForObservedData($rubrique, $type, $schema);
+}
+
+function pruneSchemaTypesForObservedData(string $rubrique, array $schema): array
+{
+    $usage = observedFormUsage();
+    if (!isset($usage[$rubrique]) || empty($schema['types'])) {
+        return $schema;
+    }
+    $observedTypes = array_keys($usage[$rubrique]);
+    $schema['types'] = array_values(array_filter($schema['types'], fn(string $type): bool => in_array($type, $observedTypes, true)));
     return $schema;
+}
+
+function pruneSchemaFieldsForObservedData(string $rubrique, string $type, array $schema): array
+{
+    $usage = observedFormUsage();
+    if (!isset($usage[$rubrique][$type])) {
+        return $schema;
+    }
+    foreach (['niveau1', 'niveau2'] as $level) {
+        $allowed = $usage[$rubrique][$type][$level] ?? null;
+        if ($allowed === null) {
+            $schema[$level] = [];
+            continue;
+        }
+        $schema[$level] = array_intersect_key($schema[$level] ?? [], array_flip($allowed));
+    }
+    return $schema;
+}
+
+function observedFormUsage(): array
+{
+    $chargesN1 = ['categorieDetaillee', 'bienConcerne', 'montant', 'payeur'];
+    $chargesN2 = ['fournisseur', 'organisme'];
+    $immobilierN1 = ['adresse', 'lienWeb', 'valeurActuelle', 'modeDetention', 'quotePartDetenue', 'pourcentageUsufruit'];
+    $immobilierCharges = ['loyer', 'chargesNonRecuperables', 'taxeFonciere', 'assurancePNO', 'regimeFiscal'];
+    $locatifN2 = array_merge([
+        'administrateurBien',
+        'administrateurBienUrl',
+        'administrateurBienIdentifiant',
+        'administrateurBienMotDePasse',
+        'administrateurBienFrais',
+        'administrateurBienInfos',
+        'syndicBien',
+        'syndicBienUrl',
+        'syndicBienIdentifiant',
+        'syndicBienMotDePasse',
+        'syndicBienFrais',
+        'syndicBienInfos',
+        'surfaceM2',
+        'locataireActuel',
+    ], $immobilierCharges);
+    $mobilierBaseN1 = ['etablissement', 'lienWeb', 'login', 'password', 'valeurActuelle', 'quotePartDetenue', 'liquidite'];
+
+    return [
+        'revenus' => [
+            'Retraite' => [
+                'niveau1' => ['organismePayeur', 'montant', 'fiscalise'],
+                'niveau2' => [],
+            ],
+            'Pension' => [
+                'niveau1' => ['organismePayeur', 'montant', 'fiscalise'],
+                'niveau2' => [],
+            ],
+            'Autre revenu' => [
+                'niveau1' => ['organismePayeur', 'montant', 'fiscalise'],
+                'niveau2' => ['conditions'],
+            ],
+        ],
+        'chargesAnnuelles' => [
+            'Santé' => ['niveau1' => $chargesN1, 'niveau2' => $chargesN2],
+            'Vie courante' => ['niveau1' => $chargesN1, 'niveau2' => $chargesN2],
+            'Immobilier' => ['niveau1' => $chargesN1, 'niveau2' => $chargesN2],
+            'Impôts' => ['niveau1' => $chargesN1, 'niveau2' => $chargesN2],
+            'Crédits' => ['niveau1' => $chargesN1, 'niveau2' => $chargesN2],
+            'Banque / placements' => ['niveau1' => $chargesN1, 'niveau2' => $chargesN2],
+            'Famille' => ['niveau1' => $chargesN1, 'niveau2' => $chargesN2],
+        ],
+        'immobilier' => [
+            'Bien locatif nu' => ['niveau1' => $immobilierN1, 'niveau2' => $locatifN2],
+            'Résidence principale' => [
+                'niveau1' => $immobilierN1,
+                'niveau2' => ['loyer', 'chargesNonRecuperables', 'taxeFonciere', 'assurancePNO'],
+            ],
+            'Résidence secondaire' => [
+                'niveau1' => $immobilierN1,
+                'niveau2' => ['loyer', 'chargesNonRecuperables', 'taxeFonciere', 'assurancePNO', 'regimeFiscal'],
+            ],
+            'Parts de SCI immobilière' => [
+                'niveau1' => ['adresse', 'valeurActuelle', 'modeDetention', 'quotePartDetenue', 'pourcentageUsufruit'],
+                'niveau2' => $immobilierCharges,
+            ],
+            'Terrain' => [
+                'niveau1' => ['adresse', 'valeurActuelle', 'modeDetention', 'quotePartDetenue', 'pourcentageUsufruit'],
+                'niveau2' => $immobilierCharges,
+            ],
+            'Autre bien immobilier' => [
+                'niveau1' => ['adresse', 'valeurActuelle', 'modeDetention', 'quotePartDetenue'],
+                'niveau2' => ['loyer', 'chargesNonRecuperables', 'taxeFonciere', 'assurancePNO'],
+            ],
+        ],
+        'mobilierFinancier' => [
+            'Compte courant' => [
+                'niveau1' => $mobilierBaseN1,
+                'niveau2' => ['numeroMasque', 'disponibiliteFonds'],
+            ],
+            'Livret bancaire' => [
+                'niveau1' => $mobilierBaseN1,
+                'niveau2' => ['numeroMasque', 'montantVerse'],
+            ],
+            'PEA' => [
+                'niveau1' => ['etablissement', 'valeurActuelle', 'quotePartDetenue', 'liquidite'],
+                'niveau2' => ['numeroMasque'],
+            ],
+            'Crypto-actifs' => [
+                'niveau1' => ['etablissement', 'valeurActuelle', 'quotePartDetenue', 'liquidite'],
+                'niveau2' => [],
+            ],
+            'Compte-titres' => [
+                'niveau1' => ['etablissement', 'valeurActuelle', 'quotePartDetenue', 'liquidite'],
+                'niveau2' => [],
+            ],
+            'SCPI' => [
+                'niveau1' => ['etablissement', 'valeurActuelle', 'quotePartDetenue', 'liquidite'],
+                'niveau2' => ['supportsDetenus', 'disponibiliteFonds', 'beneficiaires', 'description'],
+            ],
+            'Assurance-vie' => [
+                'niveau1' => ['valeurActuelle', 'quotePartDetenue', 'liquidite'],
+                'niveau2' => [],
+            ],
+            'PER' => [
+                'niveau1' => ['etablissement', 'valeurActuelle', 'quotePartDetenue', 'liquidite'],
+                'niveau2' => [],
+            ],
+            'Actions' => [
+                'niveau1' => ['etablissement', 'valeurActuelle', 'quotePartDetenue', 'liquidite'],
+                'niveau2' => [],
+            ],
+        ],
+        'fiscalite' => [
+            'Impôt sur le revenu' => [
+                'niveau1' => ['annee', 'revenuFiscalReference', 'nombrePartsFiscales', 'tauxMarginalImposition', 'ifiApplicable'],
+                'niveau2' => ['numeroFiscal', 'prelevementsSociaux', 'revenusFonciersImposables'],
+            ],
+        ],
+    ];
 }
