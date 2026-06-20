@@ -13,27 +13,26 @@ $mobilierNonLiquide = max(0, (float)$dashboard['mobilierFinancierTotal'] - $liqu
 $patrimoineSlices = array_values(array_filter([
     ['label' => 'Immobilier', 'value' => (float)$dashboard['immobilierTotal'], 'color' => '#2563eb'],
     ['label' => 'Liquidités', 'value' => $liquidites, 'color' => '#16a34a'],
-    ['label' => 'Mobilier long', 'value' => $mobilierNonLiquide, 'color' => '#7c3aed'],
+    ['label' => 'Produit financier', 'value' => $mobilierNonLiquide, 'color' => '#7c3aed'],
 ], fn(array $slice): bool => $slice['value'] > 0));
 $patrimoineTotal = array_sum(array_column($patrimoineSlices, 'value'));
-$pieCursor = 0.0;
-$pieSegments = [];
-foreach ($patrimoineSlices as $slice) {
-    $start = $pieCursor;
-    $pieCursor += $patrimoineTotal > 0 ? ($slice['value'] / $patrimoineTotal) * 100 : 0;
-    $pieSegments[] = $slice['color'] . ' ' . round($start, 2) . '% ' . round($pieCursor, 2) . '%';
-}
-$pieGradient = $pieSegments ? implode(', ', $pieSegments) : '#e5e7eb 0 100%';
+$pieGradient = pieGradient($patrimoineSlices, $patrimoineTotal);
 
 $monthlyIncome = (float)$dashboard['revenusAnnuelsTotaux'] / 12;
 $monthlyCharges = (float)$dashboard['chargesAnnuellesTotales'] / 12;
 $monthlyAvailable = $monthlyIncome - $monthlyCharges;
-$monthlyBarMax = max(1, abs($monthlyIncome), abs($monthlyCharges), abs($monthlyAvailable));
-$monthlyBars = [
-    ['label' => 'Revenus mensuels', 'value' => $monthlyIncome, 'tone' => 'green'],
-    ['label' => 'Charges mensuelles', 'value' => $monthlyCharges, 'tone' => 'amber'],
-    ['label' => 'Dispo mensuelle', 'value' => $monthlyAvailable, 'tone' => $monthlyAvailable >= 0 ? 'blue' : 'red'],
-];
+$monthlySlices = $monthlyAvailable >= 0
+    ? [
+        ['label' => 'Charges mensuelles', 'value' => $monthlyCharges, 'color' => '#f59e0b'],
+        ['label' => 'Disponible mensuel', 'value' => $monthlyAvailable, 'color' => '#2563eb'],
+    ]
+    : [
+        ['label' => 'Revenus mensuels', 'value' => $monthlyIncome, 'color' => '#16a34a'],
+        ['label' => 'Déficit mensuel', 'value' => abs($monthlyAvailable), 'color' => '#dc2626'],
+    ];
+$monthlySlices = array_values(array_filter($monthlySlices, fn(array $slice): bool => $slice['value'] > 0));
+$monthlyTotal = array_sum(array_column($monthlySlices, 'value'));
+$monthlyGradient = pieGradient($monthlySlices, $monthlyTotal);
 renderHeader('Tableau de bord');
 ?>
 <div class="page-head dense-head">
@@ -74,24 +73,28 @@ renderHeader('Tableau de bord');
     </div>
   </article>
 
-  <article class="chart-panel">
+  <article class="chart-panel chart-donut-panel">
     <div class="chart-title">
       <h2>Flux mensuels</h2>
-      <span><?= e(euro($monthlyAvailable)) ?> disponible</span>
+      <span><?= e(euro($monthlyIncome)) ?> revenus/mois</span>
     </div>
-    <div class="monthly-bars">
-      <?php foreach ($monthlyBars as $bar): ?>
-        <?php $width = max(2, (abs($bar['value']) / $monthlyBarMax) * 100); ?>
-        <div class="monthly-bar-row">
-          <div class="monthly-bar-meta">
-            <span><?= e($bar['label']) ?></span>
-            <strong><?= e(euro($bar['value'])) ?></strong>
-          </div>
-          <div class="monthly-bar-track">
-            <span class="monthly-bar-fill <?= e($bar['tone']) ?>" style="width: <?= e(round($width, 2)) ?>%"></span>
-          </div>
-        </div>
-      <?php endforeach; ?>
+    <div class="donut-wrap">
+      <div class="donut" style="--donut: conic-gradient(<?= e($monthlyGradient) ?>);">
+        <span><?= e(euro($monthlyIncome)) ?></span>
+        <small>revenus/mois</small>
+      </div>
+      <ul class="chart-legend">
+        <?php foreach ($monthlySlices as $slice): ?>
+          <li>
+            <span class="legend-dot" style="background: <?= e($slice['color']) ?>"></span>
+            <span><?= e($slice['label']) ?></span>
+            <strong><?= e(euro($slice['value'])) ?></strong>
+          </li>
+        <?php endforeach; ?>
+        <?php if (!$monthlySlices): ?>
+          <li><span class="legend-dot"></span><span>Aucun flux saisi</span><strong>0 €</strong></li>
+        <?php endif; ?>
+      </ul>
     </div>
   </article>
 </section>
@@ -171,3 +174,16 @@ renderHeader('Tableau de bord');
   </div>
 </section>
 <?php renderFooter(); ?>
+
+<?php
+function pieGradient(array $slices, float $total): string
+{
+    $cursor = 0.0;
+    $segments = [];
+    foreach ($slices as $slice) {
+        $start = $cursor;
+        $cursor += $total > 0 ? ($slice['value'] / $total) * 100 : 0;
+        $segments[] = $slice['color'] . ' ' . round($start, 2) . '% ' . round($cursor, 2) . '%';
+    }
+    return $segments ? implode(', ', $segments) : '#e5e7eb 0 100%';
+}

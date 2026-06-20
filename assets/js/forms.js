@@ -94,6 +94,45 @@ function collectLinks() {
   })).filter((link) => link.url);
 }
 
+function todayIsoDate() {
+  const date = new Date();
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 10);
+}
+
+function addHistoryRow(date = todayIsoDate(), texte = "", url = "") {
+  const box = document.querySelector("#historyBox");
+  if (!box) return;
+  const row = document.createElement("div");
+  row.className = "history-row";
+  row.innerHTML = `
+    <input type="date" data-history-date value="${escapeAttribute(date || todayIsoDate())}">
+    <textarea data-history-texte placeholder="Information historique">${escapeTextarea(texte)}</textarea>
+    <span class="url-open-field">
+      <input type="url" data-history-url value="${escapeAttribute(url)}" placeholder="https://...">
+      <a class="url-open-icon" href="${escapeAttribute(url)}" target="_blank" rel="noopener noreferrer" title="Ouvrir le lien" aria-label="Ouvrir le lien"${url ? "" : " hidden"}>â†—</a>
+    </span>
+    <button class="button tiny danger" type="button" data-remove-history>Supprimer</button>
+  `;
+  box.appendChild(row);
+}
+
+function escapeTextarea(value) {
+  return String(value ?? "").replace(/[&<>]/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+  })[char]);
+}
+
+function collectHistory() {
+  return [...document.querySelectorAll(".history-row")].map((row) => ({
+    date: row.querySelector("[data-history-date]").value,
+    texte: row.querySelector("[data-history-texte]").value.trim(),
+    url: row.querySelector("[data-history-url]").value.trim(),
+  })).filter((item) => item.texte || item.url);
+}
+
 function updateUrlOpenIcon(input) {
   const row = input.closest(".link-row");
   const icon = row?.querySelector(".url-open-icon") ?? input.closest(".url-open-field")?.querySelector(".url-open-icon");
@@ -106,10 +145,12 @@ function updateUrlOpenIcon(input) {
 document.addEventListener("click", (event) => {
   if (event.target?.id === "addLink") addLinkRow();
   if (event.target?.matches("[data-remove-link]")) event.target.closest(".link-row")?.remove();
+  if (event.target?.id === "addHistory") addHistoryRow();
+  if (event.target?.matches("[data-remove-history]")) event.target.closest(".history-row")?.remove();
 });
 
 document.addEventListener("input", (event) => {
-  if (event.target?.matches("[data-link-url], [data-url-open-source]")) {
+  if (event.target?.matches("[data-link-url], [data-url-open-source], [data-history-url]")) {
     updateUrlOpenIcon(event.target);
   }
 });
@@ -121,6 +162,9 @@ if (ficheForm) {
     event.preventDefault();
     const payload = formDataToObject(ficheForm);
     payload.liens = collectLinks();
+    if (ficheForm.dataset.rubrique === "immobilier") {
+      payload.historique = collectHistory();
+    }
 
     const rubrique = ficheForm.dataset.rubrique;
     const id = ficheForm.dataset.id;

@@ -9,7 +9,7 @@ $checks = [
     'data writable' => is_writable(__DIR__ . '/data') ? 'OK' : 'NON ECRITURE',
     'backups writable' => is_writable(__DIR__ . '/data/backups') ? 'OK' : 'NON ECRITURE',
     'users exists' => file_exists(__DIR__ . '/data/users.json') ? 'OK' : 'sera créé',
-    'patrimoine exists' => file_exists(__DIR__ . '/data/patrimoine.json') ? 'OK' : 'sera créé',
+    'patrimoine exists' => file_exists(__DIR__ . '/data/patrimoine-nicolas.json') ? 'OK' : 'sera créé',
     'patrimoine files' => implode(', ', array_map('basename', glob(__DIR__ . '/data/patrimoine*.json') ?: [])),
 ];
 ?><!doctype html>

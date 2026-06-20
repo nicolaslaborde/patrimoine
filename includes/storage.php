@@ -21,7 +21,7 @@ function ensureStorage(): void
             'username' => INITIAL_USERNAME,
             'passwordHash' => password_hash(INITIAL_PASSWORD, PASSWORD_DEFAULT),
             'role' => 'admin',
-            'patrimoineFile' => 'patrimoine.json',
+            'patrimoineFile' => 'patrimoine-nicolas.json',
             'createdAt' => nowIso(),
         ]], false);
     } else {
@@ -29,7 +29,7 @@ function ensureStorage(): void
         $changed = false;
         foreach ($users as &$user) {
             if (empty($user['patrimoineFile'])) {
-                $user['patrimoineFile'] = ($user['username'] ?? '') === INITIAL_USERNAME ? 'patrimoine.json' : patrimoineFilename((string)($user['username'] ?? $user['id']));
+                $user['patrimoineFile'] = ($user['username'] ?? '') === INITIAL_USERNAME ? 'patrimoine-nicolas.json' : patrimoineFilename((string)($user['username'] ?? $user['id']));
                 $changed = true;
             }
         }
@@ -169,10 +169,10 @@ function savePatrimoine(array $data): array
 
 function currentPatrimoineFile(): string
 {
-    $file = $_SESSION['user']['patrimoineFile'] ?? 'patrimoine.json';
+    $file = $_SESSION['user']['patrimoineFile'] ?? 'patrimoine-nicolas.json';
     $file = basename((string)$file);
     if (!preg_match('/^patrimoine[-a-zA-Z0-9_]*\.json$/', $file)) {
-        $file = 'patrimoine.json';
+        $file = 'patrimoine-nicolas.json';
     }
     return DATA_DIR . '/' . $file;
 }
@@ -186,7 +186,7 @@ function patrimoineFilename(string $username): string
 {
     $slug = strtolower(preg_replace('/[^a-zA-Z0-9_-]+/', '-', trim($username)) ?? '');
     $slug = trim($slug, '-_');
-    return $slug === INITIAL_USERNAME ? 'patrimoine.json' : 'patrimoine-' . ($slug ?: uuid()) . '.json';
+    return 'patrimoine-' . ($slug ?: uuid()) . '.json';
 }
 
 function initialPatrimoine(?string $owner = null): array

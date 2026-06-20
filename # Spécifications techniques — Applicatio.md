@@ -94,7 +94,7 @@ L’application doit pouvoir être envoyée par FTP sur un hébergement IONOS.
 
   /data
     users.json
-    patrimoine.json
+    patrimoine-nicolas.json
     patrimoine-{utilisateur}.json
     .htaccess
     /backups
@@ -137,7 +137,7 @@ Structure :
     "username": "nicolas",
     "passwordHash": "HASH",
     "role": "admin",
-    "patrimoineFile": "patrimoine.json",
+    "patrimoineFile": "patrimoine-nicolas.json",
     "createdAt": "2026-06-01T00:00:00+02:00"
   }
 ]
@@ -158,7 +158,7 @@ Chaque nouvel utilisateur doit recevoir un fichier patrimoine dédié :
 Exemples :
 
 ```text
-nicolas -> /data/patrimoine.json
+nicolas -> /data/patrimoine-nicolas.json
 paul    -> /data/patrimoine-paul.json
 marie   -> /data/patrimoine-marie.json
 ```
@@ -185,7 +185,7 @@ Le navigateur ne doit pas pouvoir accéder directement à :
 
 ```text
 /data/users.json
-/data/patrimoine.json
+/data/patrimoine-nicolas.json
 /data/patrimoine-{utilisateur}.json
 ```
 

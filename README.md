@@ -13,7 +13,7 @@ index.php
 Au premier lancement, l’application crée si besoin :
 
 - `data/users.json`
-- `data/patrimoine.json`
+- `data/patrimoine-nicolas.json`
 - `data/backups/`
 
 Identifiants initiaux :

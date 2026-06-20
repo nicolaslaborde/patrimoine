@@ -10,7 +10,7 @@ const ROOT_DIR = __DIR__ . '/..';
 const DATA_DIR = ROOT_DIR . '/data';
 const BACKUP_DIR = DATA_DIR . '/backups';
 const USERS_FILE = DATA_DIR . '/users.json';
-const PATRIMOINE_FILE = DATA_DIR . '/patrimoine.json';
+const PATRIMOINE_FILE = DATA_DIR . '/patrimoine-nicolas.json';
 
 const RUBRIQUES = [
     'profil',

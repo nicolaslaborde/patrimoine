@@ -110,6 +110,7 @@ function sanitizeFiche(string $rubrique, array $input, array $existing = []): ar
         'niveau1' => sanitizeLevel($input['niveau1'] ?? [], $schema['niveau1']),
         'niveau2' => sanitizeLevel($input['niveau2'] ?? [], $schema['niveau2']),
         'liens' => sanitizeLinks($input['liens'] ?? []),
+        'historique' => $rubrique === 'immobilier' ? sanitizeHistorique($input['historique'] ?? []) : ($existing['historique'] ?? []),
         'commentaire' => trim((string)($input['commentaire'] ?? '')),
     ];
 
@@ -150,7 +151,7 @@ function sanitizeLevel(array $values, array $schema): array
                 jsonResponse(['error' => "Lien invalide: {$url}"], 422);
             }
             $out[$field] = $url;
-        } elseif ($def['type'] === 'textarea' || $def['type'] === 'text') {
+        } elseif (in_array($def['type'], ['textarea', 'text', 'password'], true)) {
             $out[$field] = is_scalar($value) ? trim((string)$value) : '';
         } else {
             $out[$field] = '';
@@ -207,6 +208,34 @@ function sanitizeLinks(array $links): array
             'url' => $url,
             'description' => trim((string)($link['description'] ?? '')),
             'createdAt' => $link['createdAt'] ?? nowIso(),
+        ];
+    }
+    return $out;
+}
+
+function sanitizeHistorique(array $items): array
+{
+    $out = [];
+    foreach ($items as $item) {
+        if (!is_array($item)) {
+            continue;
+        }
+        $texte = trim((string)($item['texte'] ?? ''));
+        $url = trim((string)($item['url'] ?? ''));
+        if ($texte === '' && $url === '') {
+            continue;
+        }
+        if ($url !== '' && !validUrl($url)) {
+            jsonResponse(['error' => "Lien historique invalide: {$url}"], 422);
+        }
+        $date = (string)($item['date'] ?? '');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            $date = date('Y-m-d');
+        }
+        $out[] = [
+            'date' => $date,
+            'texte' => $texte,
+            'url' => $url,
         ];
     }
     return $out;

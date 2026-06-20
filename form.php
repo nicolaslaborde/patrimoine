@@ -10,14 +10,6 @@ if (!in_array($rubrique, RUBRIQUES, true)) {
 $schema = schemaFor($rubrique);
 $baseSchema = $schema;
 $data = loadPatrimoine();
-if ($rubrique === 'chargesAnnuelles') {
-    $schema['niveau1']['bienConcerne']['type'] = 'select';
-    $schema['niveau1']['bienConcerne']['options'] = immobilierOptions($data);
-}
-if ($rubrique === 'revenus') {
-    $schema['niveau1']['bienImmobilierAssocie']['type'] = 'select';
-    $schema['niveau1']['bienImmobilierAssocie']['options'] = immobilierOptions($data, true);
-}
 $id = $_GET['id'] ?? null;
 $entry = null;
 if ($rubrique !== 'profil' && $id) {
@@ -31,20 +23,38 @@ if ($rubrique !== 'profil' && $id) {
 if ($rubrique === 'profil') {
     $entry = ['type' => 'Informations personnelles', 'titre' => $data['profil']['nomDossier'] ?? 'Profil', 'niveau1' => $data['profil'], 'niveau2' => $data['profil'], 'liens' => $data['profil']['liens'] ?? [], 'commentaire' => $data['profil']['commentaires'] ?? ''];
 }
-$entry ??= ['type' => '', 'titre' => '', 'niveau1' => [], 'niveau2' => [], 'liens' => [], 'commentaire' => ''];
+$entry ??= ['type' => '', 'titre' => '', 'niveau1' => [], 'niveau2' => [], 'liens' => [], 'historique' => [], 'commentaire' => ''];
 $selectedType = (string)(($_GET['type'] ?? '') ?: ($entry['type'] ?? ''));
 if ($selectedType !== '' && in_array($selectedType, $baseSchema['types'] ?? [], true)) {
     $entry['type'] = $selectedType;
     $schema = schemaForFiche($rubrique, $selectedType);
     $schema['types'] = $baseSchema['types'];
 }
+$schema = applyContextualOptions($schema, $rubrique, $data);
+$ficheNavigation = ficheNavigation($data, $rubrique, (string)$id);
 $isAutoImmobilierRevenu = $rubrique === 'revenus' && (($entry['sourceAutomatique'] ?? '') === 'immobilierRegimeFiscal');
 renderHeader(($id ? 'Modifier' : 'Ajouter') . ' - ' . $schema['label']);
 ?>
 <div class="page-head dense-head">
   <div>
     <h1><?= e(pageH1($isAutoImmobilierRevenu ? 'Voir une fiche' : ($rubrique === 'profil' ? 'Profil' : ($id ? 'Modifier une fiche' : 'Ajouter une fiche')))) ?></h1>
-    <p class="muted"><?= e($schema['label']) ?></p>
+    <?php if ($ficheNavigation['show']): ?>
+      <div class="fiche-nav-line" aria-label="Navigation entre fiches">
+        <?php if ($ficheNavigation['previous']): ?>
+          <a class="fiche-nav-icon" href="<?= e($ficheNavigation['previous']['url']) ?>" title="<?= e($ficheNavigation['previous']['title']) ?>" aria-label="Fiche précédente">&lt;</a>
+        <?php else: ?>
+          <span class="fiche-nav-icon disabled" aria-disabled="true">&lt;</span>
+        <?php endif; ?>
+        <span class="muted"><?= e($schema['label']) ?> (fiche <?= e($ficheNavigation['position']) ?> sur <?= e($ficheNavigation['total']) ?>)</span>
+        <?php if ($ficheNavigation['next']): ?>
+          <a class="fiche-nav-icon" href="<?= e($ficheNavigation['next']['url']) ?>" title="<?= e($ficheNavigation['next']['title']) ?>" aria-label="Fiche suivante">&gt;</a>
+        <?php else: ?>
+          <span class="fiche-nav-icon disabled" aria-disabled="true">&gt;</span>
+        <?php endif; ?>
+      </div>
+    <?php else: ?>
+      <p class="muted"><?= e($schema['label']) ?></p>
+    <?php endif; ?>
   </div>
 </div>
 
@@ -105,7 +115,7 @@ renderHeader(($id ? 'Modifier' : 'Ajouter') . ' - ' . $schema['label']);
   <?php if ($rubrique !== 'profil'): ?>
     <section class="form-band">
       <label>Type de fiche <span class="required-star">*</span>
-        <select name="type" required <?= $rubrique === 'fiscalite' ? 'data-type-specific="1"' : '' ?>>
+        <select name="type" required data-type-specific="1">
           <option value="">Choisir...</option>
           <?php foreach ($schema['types'] as $type): ?>
             <option value="<?= e($type) ?>" <?= ($entry['type'] ?? '') === $type ? 'selected' : '' ?>><?= e($type) ?></option>
@@ -126,6 +136,28 @@ renderHeader(($id ? 'Modifier' : 'Ajouter') . ' - ' . $schema['label']);
       <?php endforeach; ?>
     </div>
   </section>
+
+  <?php if ($rubrique === 'immobilier'): ?>
+    <section class="form-band">
+      <div class="section-title-row">
+        <h2>Historique</h2>
+        <button class="button tiny secondary" type="button" id="addHistory">Ajouter historique</button>
+      </div>
+      <div id="historyBox" class="history-box">
+        <?php foreach (($entry['historique'] ?? []) as $history): ?>
+          <div class="history-row">
+            <input type="date" data-history-date value="<?= e($history['date'] ?? date('Y-m-d')) ?>">
+            <textarea data-history-texte placeholder="Information historique"><?= e($history['texte'] ?? '') ?></textarea>
+            <span class="url-open-field">
+              <input type="url" data-history-url value="<?= e($history['url'] ?? '') ?>" placeholder="https://...">
+              <?= renderUrlOpenIcon((string)($history['url'] ?? '')) ?>
+            </span>
+            <button class="button tiny danger" type="button" data-remove-history>Supprimer</button>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    </section>
+  <?php endif; ?>
 
   <details class="form-band" open>
     <summary>2. Informations détaillées et mémo</summary>
@@ -175,7 +207,7 @@ function renderField(string $field, array $def, $value, string $level, bool $req
     $requiredAttr = ($required || !empty($def['required'])) ? 'required' : '';
     $type = $def['type'] ?? 'text';
     $full = in_array($type, ['textarea'], true) || !empty($def['periodic']) ? ' full' : '';
-    $withOpenIcon = $rubrique === 'immobilier' && $type === 'url';
+    $withOpenIcon = in_array($rubrique, ['immobilier', 'mobilierFinancier'], true) && $type === 'url';
     ob_start();
     if (!empty($def['periodic'])):
         $p = is_array($value) ? $value : [];
@@ -215,7 +247,7 @@ function renderField(string $field, array $def, $value, string $level, bool $req
               <?= renderUrlOpenIcon((string)$value) ?>
             </span>
           <?php else: ?>
-            <input type="<?= e($type) ?>" name="<?= e($name) ?>" value="<?= e($value) ?>" <?= $type === 'number' ? 'step="any"' : '' ?> <?= $requiredAttr ?>>
+            <input type="<?= e($type) ?>" name="<?= e($name) ?>" value="<?= e($value) ?>" <?= $type === 'number' ? 'step="any"' : '' ?> <?= $type === 'password' ? 'autocomplete="new-password"' : '' ?> <?= $requiredAttr ?>>
           <?php endif; ?>
         </label>
     <?php endif;
@@ -227,6 +259,56 @@ function renderUrlOpenIcon(string $url): string
     $url = trim($url);
     $hidden = $url === '' ? ' hidden' : '';
     return '<a class="url-open-icon" href="' . e($url) . '" target="_blank" rel="noopener noreferrer" title="Ouvrir le lien" aria-label="Ouvrir le lien"' . $hidden . '>↗</a>';
+}
+
+function applyContextualOptions(array $schema, string $rubrique, array $data): array
+{
+    if ($rubrique === 'chargesAnnuelles' && isset($schema['niveau1']['bienConcerne'])) {
+        $schema['niveau1']['bienConcerne']['type'] = 'select';
+        $schema['niveau1']['bienConcerne']['options'] = immobilierOptions($data);
+    }
+    if ($rubrique === 'revenus' && isset($schema['niveau1']['bienImmobilierAssocie'])) {
+        $schema['niveau1']['bienImmobilierAssocie']['type'] = 'select';
+        $schema['niveau1']['bienImmobilierAssocie']['options'] = immobilierOptions($data, true);
+    }
+    return $schema;
+}
+
+function ficheNavigation(array $data, string $rubrique, string $id): array
+{
+    $empty = ['show' => false, 'previous' => null, 'next' => null, 'position' => 0, 'total' => 0];
+    if ($rubrique === 'profil' || $id === '') {
+        return $empty;
+    }
+    $entries = array_values($data[$rubrique] ?? []);
+    $currentIndex = null;
+    foreach ($entries as $index => $entry) {
+        if (($entry['id'] ?? '') === $id) {
+            $currentIndex = $index;
+            break;
+        }
+    }
+    if ($currentIndex === null) {
+        return $empty;
+    }
+    return [
+        'show' => count($entries) > 1,
+        'previous' => ficheNavigationTarget($rubrique, $entries[$currentIndex - 1] ?? null),
+        'next' => ficheNavigationTarget($rubrique, $entries[$currentIndex + 1] ?? null),
+        'position' => $currentIndex + 1,
+        'total' => count($entries),
+    ];
+}
+
+function ficheNavigationTarget(string $rubrique, ?array $entry): ?array
+{
+    if (!$entry || empty($entry['id'])) {
+        return null;
+    }
+    return [
+        'url' => 'form.php?rubrique=' . rawurlencode($rubrique) . '&id=' . rawurlencode((string)$entry['id']),
+        'title' => trim((string)($entry['titre'] ?? 'Fiche')),
+    ];
 }
 
 function immobilierOptions(array $data, bool $includeEmpty = false): array

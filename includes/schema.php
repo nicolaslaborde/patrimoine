@@ -28,8 +28,6 @@ function appSchema(): array
             'types' => ['Salaire', 'Retraite', 'Rente', 'Pension', 'Allocation', 'Revenu indépendant', 'Autre revenu'],
             'niveau1Required' => ['type', 'titre', 'montantAnnuel'],
             'niveau1' => [
-                'organismePayeur' => field('Organisme payeur', 'text'),
-                'bienImmobilierAssocie' => field('Bien immobilier associé', 'text'),
                 'montant' => field('Montant', 'number', true, [], true),
                 'fiscalise' => field('Fiscalisé', 'select', false, ['oui', 'non']),
             ],
@@ -39,6 +37,7 @@ function appSchema(): array
                 'reversionPossible' => field('Réversion possible', 'select', false, ['oui', 'non', 'inconnu']),
                 'conditions' => field('Conditions', 'textarea'),
             ],
+            'typeSchemas' => revenusTypeSchemas(),
         ],
         'dettesCredits' => [
             'label' => 'Dettes et crédits',
@@ -88,11 +87,8 @@ function appSchema(): array
                     'Dépenses exceptionnelles',
                     'Autre',
                 ]),
-                'bienConcerne' => field('Bien concerné', 'text'),
                 'montant' => field('Montant', 'number', true, [], true),
                 'payeur' => field('Payeur', 'select', false, ['Nicolas', 'Conjoint', 'Indivision', 'SCI', 'Société', 'Foyer', 'Autre']),
-                'deductibleFiscalement' => field('Déductible fiscalement', 'select', false, ['oui', 'non', 'partiellement', 'à vérifier']),
-                'recuperableLocataire' => field('Récupérable sur locataire', 'select', false, ['oui', 'non', 'partiellement', 'non concerné']),
                 'obligatoire' => field('Obligatoire', 'select', false, ['oui', 'non']),
             ],
             'niveau2' => [
@@ -104,6 +100,7 @@ function appSchema(): array
                 'contratAssocie' => field('Contrat associé', 'text'),
                 'justificatif' => field('Justificatif', 'select', false, ['PDF', 'facture', 'avis d’impôt', 'contrat', 'photo', 'autre', 'aucun']),
             ],
+            'typeSchemas' => chargesAnnuellesTypeSchemas(),
         ],
         'immobilier' => [
             'label' => 'Immobilier',
@@ -116,29 +113,18 @@ function appSchema(): array
                 'modeDetention' => field('Mode de détention', 'select', false, ['Pleine propriété', 'Indivision', 'Usufruit', 'Nue-propriété', 'SCI', 'Autre']),
                 'quotePartDetenue' => field('Quote-part détenue', 'number', true),
                 'pourcentageUsufruit' => field('% usufruit', 'number'),
+                'creditAssocie' => field('Crédit associé', 'text'),
+                'revenuAssocie' => field('Revenu associé', 'text'),
+                'chargeAssociee' => field('Charge associée', 'text'),
             ],
             'niveau2' => [
-                'administrateurBien' => field('Administrateur du bien', 'text'),
-                'administrateurBienUrl' => field('Lien web administrateur du bien', 'url'),
-                'administrateurBienInfos' => field('Infos administrateur du bien', 'textarea'),
-                'syndicBien' => field('Syndic du bien', 'text'),
-                'syndicBienUrl' => field('Lien web syndic du bien', 'url'),
-                'syndicBienInfos' => field('Infos syndic du bien', 'textarea'),
                 'surfaceM2' => field('Surface m²', 'number'),
                 'dateAcquisition' => field('Date d’acquisition', 'date'),
                 'prixAchat' => field('Prix d’achat', 'number'),
                 'fraisNotaire' => field('Frais de notaire', 'number'),
                 'travauxRealises' => field('Travaux réalisés', 'number'),
-                'loyer' => field('Loyer', 'number', false, [], true, 'loyer'),
-                'chargesNonRecuperables' => field('Charges non récupérables', 'number', false, [], true, 'chargesNonRecuperables'),
-                'taxeFonciere' => field('Taxe foncière', 'number', false, [], true, 'taxeFonciere'),
-                'assurancePNO' => field('Assurance PNO', 'number', false, [], true, 'assurancePNO'),
-                'regimeFiscal' => field('Régime fiscal', 'select', false, ['Micro-foncier', 'Réel foncier', 'Micro-BIC', 'LMNP réel', 'LMP', 'SCI IR', 'SCI IS', 'Autre']),
-                'locataireActuel' => field('Locataire actuel', 'text'),
-                'dateDebutBail' => field('Début du bail', 'date'),
-                'dateFinBail' => field('Fin du bail', 'date'),
-                'depotGarantie' => field('Dépôt de garantie', 'number'),
             ],
+            'typeSchemas' => immobilierTypeSchemas(),
         ],
         'mobilierFinancier' => [
             'label' => 'Mobilier et financier',
@@ -146,27 +132,17 @@ function appSchema(): array
             'niveau1Required' => ['type', 'titre', 'valeurActuelle', 'quotePartDetenue'],
             'niveau1' => [
                 'etablissement' => field('Établissement', 'text'),
+                'lienWeb' => field('Lien web', 'url'),
+                'login' => field('Login', 'text'),
+                'password' => field('Password', 'text'),
                 'valeurActuelle' => field('Valeur actuelle', 'number', true),
                 'quotePartDetenue' => field('Quote-part détenue', 'number', true),
                 'liquidite' => field('Liquidité', 'select', false, ['immédiate', 'sous quelques jours', 'à échéance', 'bloquée', 'autre']),
             ],
             'niveau2' => [
-                'numeroMasque' => field('Numéro masqué', 'text'),
-                'dateOuverture' => field('Date d’ouverture', 'date'),
-                'montantVerse' => field('Montant versé', 'number'),
-                'plusValueLatente' => field('Plus-value latente', 'number'),
-                'supportsDetenus' => field('Supports détenus', 'textarea'),
-                'niveauRisque' => field('Niveau de risque', 'select', false, ['faible', 'moyen', 'élevé']),
-                'fiscalite' => field('Fiscalité', 'text'),
-                'disponibiliteFonds' => field('Disponibilité des fonds', 'select', false, ['immédiate', 'sous quelques jours', 'à échéance', 'bloquée', 'autre']),
-                'beneficiaires' => field('Bénéficiaires', 'textarea'),
-                'clauseBeneficiaire' => field('Clause bénéficiaire', 'select', false, ['standard', 'personnalisée', 'à vérifier', 'non renseignée']),
-                'lieuConservation' => field('Lieu de conservation', 'text'),
-                'assuranceSpecifique' => field('Assurance spécifique', 'select', false, ['oui', 'non']),
-                'dateAchat' => field('Date d’achat', 'date'),
-                'prixAchat' => field('Prix d’achat', 'number'),
                 'description' => field('Description', 'textarea'),
             ],
+            'typeSchemas' => mobilierFinancierTypeSchemas(),
         ],
         'fiscalite' => [
             'label' => 'Fiscalité',
@@ -250,6 +226,326 @@ function field(string $label, string $type = 'text', bool $required = false, arr
         'options' => $options,
         'periodic' => $periodic,
         'periodicBase' => $periodicBase,
+    ];
+}
+
+function revenusTypeSchemas(): array
+{
+    $pensionFields = [
+        'niveau1' => [
+            'organismePayeur' => field('Caisse / organisme payeur', 'text'),
+            'montant' => field('Montant de la pension', 'number', true, [], true),
+            'fiscalise' => field('Fiscalisé', 'select', false, ['oui', 'non']),
+        ],
+        'niveau2' => [
+            'dateDebut' => field('Date de début de versement', 'date'),
+            'dateFin' => field('Date de fin prévue', 'date'),
+            'reversionPossible' => field('Réversion possible', 'select', false, ['oui', 'non', 'inconnu']),
+            'conditions' => field('Conditions / remarques', 'textarea'),
+        ],
+    ];
+
+    return [
+        'Salaire' => [
+            'niveau1' => [
+                'organismePayeur' => field('Employeur', 'text'),
+                'montant' => field('Salaire net / imposable', 'number', true, [], true),
+                'fiscalise' => field('Fiscalisé', 'select', false, ['oui', 'non']),
+            ],
+            'niveau2' => [
+                'dateDebut' => field('Date de début du contrat', 'date'),
+                'dateFin' => field('Date de fin du contrat', 'date'),
+                'conditions' => field('Contrat / primes / avantages', 'textarea'),
+            ],
+        ],
+        'Retraite' => $pensionFields,
+        'Rente' => $pensionFields,
+        'Pension' => $pensionFields,
+        'Allocation' => $pensionFields,
+        'Revenu indépendant' => [
+            'niveau1' => [
+                'organismePayeur' => field('Client / activité', 'text'),
+                'montant' => field('Revenu', 'number', true, [], true),
+                'fiscalise' => field('Fiscalisé', 'select', false, ['oui', 'non']),
+            ],
+            'niveau2' => [
+                'dateDebut' => field('Date de début d’activité', 'date'),
+                'dateFin' => field('Date de fin prévue', 'date'),
+                'conditions' => field('Charges, périodicité, remarques', 'textarea'),
+            ],
+        ],
+        'Autre revenu' => [
+            'niveau1' => [
+                'organismePayeur' => field('Origine du revenu', 'text'),
+                'bienImmobilierAssocie' => field('Bien immobilier associé', 'text'),
+                'montant' => field('Montant', 'number', true, [], true),
+                'fiscalise' => field('Fiscalisé', 'select', false, ['oui', 'non']),
+            ],
+            'niveau2' => [
+                'dateDebut' => field('Date de début', 'date'),
+                'dateFin' => field('Date de fin', 'date'),
+                'conditions' => field('Détail du calcul / conditions', 'textarea'),
+            ],
+        ],
+    ];
+}
+
+function chargesAnnuellesTypeSchemas(): array
+{
+    $common = [
+        'niveau1' => [
+            'montant' => field('Montant de la charge', 'number', true, [], true),
+            'payeur' => field('Payeur', 'select', false, ['Nicolas', 'Conjoint', 'Indivision', 'SCI', 'Société', 'Foyer', 'Autre']),
+            'obligatoire' => field('Obligatoire', 'select', false, ['oui', 'non']),
+        ],
+        'niveau2' => [
+            'fournisseur' => field('Fournisseur', 'text'),
+            'organisme' => field('Organisme', 'text'),
+            'dateEcheance' => field('Date d’échéance', 'date'),
+            'modePaiement' => field('Mode de paiement', 'select', false, ['prélèvement', 'virement', 'carte bancaire', 'chèque', 'espèces', 'autre']),
+            'contratReference' => field('Contrat / référence', 'text'),
+            'contratAssocie' => field('Contrat associé', 'text'),
+            'justificatif' => field('Justificatif', 'select', false, ['PDF', 'facture', 'avis d’impôt', 'contrat', 'photo', 'autre', 'aucun']),
+        ],
+    ];
+
+    return [
+        'Immobilier' => array_replace_recursive($common, [
+            'niveau1' => [
+                'categorieDetaillee' => field('Catégorie immobilière', 'select', false, ['Logement', 'Énergie et eau', 'Assurances', 'Impôts et taxes', 'Crédits et dettes', 'Services et aide à domicile', 'Autre']),
+                'bienConcerne' => field('Bien concerné', 'text'),
+                'deductibleFiscalement' => field('Déductible fiscalement', 'select', false, ['oui', 'non', 'partiellement', 'à vérifier']),
+                'recuperableLocataire' => field('Récupérable sur locataire', 'select', false, ['oui', 'non', 'partiellement', 'non concerné']),
+            ],
+        ]),
+        'Crédits' => array_replace_recursive($common, [
+            'niveau1' => [
+                'categorieDetaillee' => field('Catégorie de crédit', 'select', false, ['Crédits et dettes', 'Banque et frais financiers', 'Autre']),
+                'bienConcerne' => field('Bien / projet concerné', 'text'),
+                'deductibleFiscalement' => field('Déductible fiscalement', 'select', false, ['oui', 'non', 'partiellement', 'à vérifier']),
+            ],
+        ]),
+        'Banque / placements' => array_replace_recursive($common, [
+            'niveau1' => [
+                'categorieDetaillee' => field('Catégorie bancaire', 'select', false, ['Banque et frais financiers', 'Épargne et placements', 'Autre']),
+                'bienConcerne' => field('Compte / placement concerné', 'text'),
+            ],
+        ]),
+        'Impôts' => array_replace_recursive($common, [
+            'niveau1' => [
+                'categorieDetaillee' => field('Catégorie fiscale', 'select', false, ['Impôts et taxes', 'Autre']),
+                'bienConcerne' => field('Bien ou foyer concerné', 'text'),
+                'deductibleFiscalement' => field('Déductible fiscalement', 'select', false, ['oui', 'non', 'partiellement', 'à vérifier']),
+            ],
+        ]),
+        'Santé' => array_replace_recursive($common, [
+            'niveau1' => [
+                'categorieDetaillee' => field('Catégorie santé', 'select', false, ['Santé', 'Assurances', 'Autre']),
+                'bienConcerne' => field('Personne concernée', 'text'),
+            ],
+        ]),
+        'Vie courante' => array_replace_recursive($common, [
+            'niveau1' => [
+                'categorieDetaillee' => field('Catégorie vie courante', 'select', false, ['Alimentation et courses', 'Transport', 'Télécoms et abonnements', 'Loisirs, culture et sorties', 'Habillement et équipement', 'Autre']),
+                'bienConcerne' => field('Poste concerné', 'text'),
+            ],
+        ]),
+        'Famille' => array_replace_recursive($common, [
+            'niveau1' => [
+                'categorieDetaillee' => field('Catégorie famille', 'select', false, ['Famille et enfants', 'Santé', 'Services et aide à domicile', 'Autre']),
+                'bienConcerne' => field('Personne concernée', 'text'),
+            ],
+        ]),
+    ];
+}
+
+function immobilierTypeSchemas(): array
+{
+    $locatif = [
+        'niveau2' => [
+            'administrateurBien' => field('Administrateur du bien', 'text'),
+            'administrateurBienUrl' => field('Lien web administrateur du bien', 'url'),
+            'administrateurBienIdentifiant' => field('Identifiant administrateur du bien', 'text'),
+            'administrateurBienMotDePasse' => field('Mot de passe administrateur du bien', 'text'),
+            'administrateurBienFrais' => field('Frais gestionnaire', 'number', false, [], true, 'administrateurBienFrais'),
+            'administrateurBienInfos' => field('Infos administrateur du bien', 'textarea'),
+            'syndicBien' => field('Syndic du bien', 'text'),
+            'syndicBienUrl' => field('Lien web syndic du bien', 'url'),
+            'syndicBienIdentifiant' => field('Identifiant syndic du bien', 'text'),
+            'syndicBienMotDePasse' => field('Mot de passe syndic du bien', 'text'),
+            'syndicBienFrais' => field('Frais syndic', 'number', false, [], true, 'syndicBienFrais'),
+            'syndicBienInfos' => field('Infos syndic du bien', 'textarea'),
+            'loyer' => field('Loyer encaissé', 'number', false, [], true, 'loyer'),
+            'chargesNonRecuperables' => field('Charges non récupérables', 'number', false, [], true, 'chargesNonRecuperables'),
+            'taxeFonciere' => field('Taxe foncière', 'number', false, [], true, 'taxeFonciere'),
+            'assurancePNO' => field('Assurance PNO', 'number', false, [], true, 'assurancePNO'),
+            'regimeFiscal' => field('Régime fiscal locatif', 'select', false, ['Micro-foncier', 'Réel foncier', 'Micro-BIC', 'LMNP réel', 'LMP', 'SCI IR', 'SCI IS', 'Autre']),
+            'locataireActuel' => field('Locataire actuel', 'text'),
+            'dateDebutBail' => field('Début du bail', 'date'),
+            'dateFinBail' => field('Fin du bail', 'date'),
+            'depotGarantie' => field('Dépôt de garantie', 'number'),
+        ],
+    ];
+
+    return [
+        'Résidence principale' => [
+            'niveau2' => [
+                'administrateurBien' => field('Administrateur du bien', 'text'),
+                'administrateurBienUrl' => field('Lien web administrateur du bien', 'url'),
+                'administrateurBienIdentifiant' => field('Identifiant administrateur du bien', 'text'),
+                'administrateurBienMotDePasse' => field('Mot de passe administrateur du bien', 'text'),
+                'administrateurBienFrais' => field('Frais gestionnaire', 'number', false, [], true, 'administrateurBienFrais'),
+                'administrateurBienInfos' => field('Infos administrateur du bien', 'textarea'),
+                'syndicBien' => field('Syndic du bien', 'text'),
+                'syndicBienUrl' => field('Lien web syndic du bien', 'url'),
+                'syndicBienIdentifiant' => field('Identifiant syndic du bien', 'text'),
+                'syndicBienMotDePasse' => field('Mot de passe syndic du bien', 'text'),
+                'syndicBienFrais' => field('Frais syndic', 'number', false, [], true, 'syndicBienFrais'),
+                'syndicBienInfos' => field('Infos syndic du bien', 'textarea'),
+                'surfaceM2' => field('Surface m²', 'number'),
+                'dateAcquisition' => field('Date d’acquisition', 'date'),
+                'prixAchat' => field('Prix d’achat', 'number'),
+                'fraisNotaire' => field('Frais de notaire', 'number'),
+                'travauxRealises' => field('Travaux réalisés', 'number'),
+                'taxeFonciere' => field('Taxe foncière', 'number', false, [], true, 'taxeFonciere'),
+            ],
+        ],
+        'Résidence secondaire' => [
+            'niveau2' => [
+                'administrateurBien' => field('Administrateur du bien', 'text'),
+                'administrateurBienUrl' => field('Lien web administrateur du bien', 'url'),
+                'administrateurBienIdentifiant' => field('Identifiant administrateur du bien', 'text'),
+                'administrateurBienMotDePasse' => field('Mot de passe administrateur du bien', 'text'),
+                'administrateurBienFrais' => field('Frais gestionnaire', 'number', false, [], true, 'administrateurBienFrais'),
+                'administrateurBienInfos' => field('Infos administrateur du bien', 'textarea'),
+                'syndicBien' => field('Syndic du bien', 'text'),
+                'syndicBienUrl' => field('Lien web syndic du bien', 'url'),
+                'syndicBienIdentifiant' => field('Identifiant syndic du bien', 'text'),
+                'syndicBienMotDePasse' => field('Mot de passe syndic du bien', 'text'),
+                'syndicBienFrais' => field('Frais syndic', 'number', false, [], true, 'syndicBienFrais'),
+                'syndicBienInfos' => field('Infos syndic du bien', 'textarea'),
+                'surfaceM2' => field('Surface m²', 'number'),
+                'dateAcquisition' => field('Date d’acquisition', 'date'),
+                'prixAchat' => field('Prix d’achat', 'number'),
+                'fraisNotaire' => field('Frais de notaire', 'number'),
+                'travauxRealises' => field('Travaux réalisés', 'number'),
+                'taxeFonciere' => field('Taxe foncière', 'number', false, [], true, 'taxeFonciere'),
+                'assurancePNO' => field('Assurance propriétaire', 'number', false, [], true, 'assurancePNO'),
+            ],
+        ],
+        'Bien locatif nu' => $locatif,
+        'Bien locatif meublé' => $locatif,
+        'Garage' => $locatif,
+        'Local commercial' => $locatif,
+        'Parts de SCI immobilière' => [
+            'niveau2' => [
+                'administrateurBien' => field('Gérant / administrateur', 'text'),
+                'administrateurBienUrl' => field('Lien web gérant / SCI', 'url'),
+                'administrateurBienIdentifiant' => field('Identifiant gérant / SCI', 'text'),
+                'administrateurBienMotDePasse' => field('Mot de passe gérant / SCI', 'text'),
+                'administrateurBienFrais' => field('Frais gérant / SCI', 'number', false, [], true, 'administrateurBienFrais'),
+                'administrateurBienInfos' => field('Infos gérant / SCI', 'textarea'),
+                'regimeFiscal' => field('Régime fiscal de la SCI', 'select', false, ['SCI IR', 'SCI IS', 'Micro-foncier', 'Réel foncier', 'Autre']),
+                'loyer' => field('Revenu distribué / estimé', 'number', false, [], true, 'loyer'),
+                'chargesNonRecuperables' => field('Charges non récupérables', 'number', false, [], true, 'chargesNonRecuperables'),
+                'taxeFonciere' => field('Taxe foncière', 'number', false, [], true, 'taxeFonciere'),
+                'assurancePNO' => field('Assurance PNO', 'number', false, [], true, 'assurancePNO'),
+            ],
+        ],
+        'Terrain' => [
+            'niveau2' => [
+                'surfaceM2' => field('Surface m²', 'number'),
+                'dateAcquisition' => field('Date d’acquisition', 'date'),
+                'prixAchat' => field('Prix d’achat', 'number'),
+                'taxeFonciere' => field('Taxe foncière', 'number', false, [], true, 'taxeFonciere'),
+            ],
+        ],
+        'Autre bien immobilier' => $locatif,
+    ];
+}
+
+function mobilierFinancierTypeSchemas(): array
+{
+    $bankAccount = [
+        'niveau2' => [
+            'numeroMasque' => field('Numéro de compte masqué', 'text'),
+            'dateOuverture' => field('Date d’ouverture', 'date'),
+            'disponibiliteFonds' => field('Disponibilité des fonds', 'select', false, ['immédiate', 'sous quelques jours', 'à échéance', 'bloquée', 'autre']),
+            'description' => field('Mémo', 'textarea'),
+        ],
+    ];
+    $marketAccount = [
+        'niveau2' => [
+            'numeroMasque' => field('Numéro de contrat / compte masqué', 'text'),
+            'dateOuverture' => field('Date d’ouverture', 'date'),
+            'montantVerse' => field('Montant versé', 'number'),
+            'plusValueLatente' => field('Plus-value latente', 'number'),
+            'supportsDetenus' => field('Supports détenus', 'textarea'),
+            'niveauRisque' => field('Niveau de risque', 'select', false, ['faible', 'moyen', 'élevé']),
+            'fiscalite' => field('Fiscalité', 'text'),
+            'disponibiliteFonds' => field('Disponibilité des fonds', 'select', false, ['immédiate', 'sous quelques jours', 'à échéance', 'bloquée', 'autre']),
+        ],
+    ];
+
+    return [
+        'Compte courant' => $bankAccount,
+        'Livret bancaire' => $bankAccount,
+        'Compte à terme' => $bankAccount,
+        'PEA' => $marketAccount,
+        'Compte-titres' => $marketAccount,
+        'SCPI' => $marketAccount,
+        'ETF' => $marketAccount,
+        'Actions' => $marketAccount,
+        'Obligations' => $marketAccount,
+        'Crypto-actifs' => $marketAccount,
+        'Assurance-vie' => array_replace_recursive($marketAccount, [
+            'niveau2' => [
+                'beneficiaires' => field('Bénéficiaires', 'textarea'),
+                'clauseBeneficiaire' => field('Clause bénéficiaire', 'select', false, ['standard', 'personnalisée', 'à vérifier', 'non renseignée']),
+            ],
+        ]),
+        'PER' => array_replace_recursive($marketAccount, [
+            'niveau2' => [
+                'beneficiaires' => field('Bénéficiaires', 'textarea'),
+                'clauseBeneficiaire' => field('Clause bénéficiaire', 'select', false, ['standard', 'personnalisée', 'à vérifier', 'non renseignée']),
+            ],
+        ]),
+        'Bijoux' => [
+            'niveau2' => [
+                'lieuConservation' => field('Lieu de conservation', 'text'),
+                'assuranceSpecifique' => field('Assurance spécifique', 'select', false, ['oui', 'non']),
+                'dateAchat' => field('Date d’achat', 'date'),
+                'prixAchat' => field('Prix d’achat', 'number'),
+                'description' => field('Description', 'textarea'),
+            ],
+        ],
+        'Or' => [
+            'niveau2' => [
+                'lieuConservation' => field('Lieu de conservation', 'text'),
+                'assuranceSpecifique' => field('Assurance spécifique', 'select', false, ['oui', 'non']),
+                'dateAchat' => field('Date d’achat', 'date'),
+                'prixAchat' => field('Prix d’achat', 'number'),
+                'description' => field('Description', 'textarea'),
+            ],
+        ],
+        'Œuvre d’art' => [
+            'niveau2' => [
+                'lieuConservation' => field('Lieu de conservation', 'text'),
+                'assuranceSpecifique' => field('Assurance spécifique', 'select', false, ['oui', 'non']),
+                'dateAchat' => field('Date d’achat', 'date'),
+                'prixAchat' => field('Prix d’achat', 'number'),
+                'description' => field('Description', 'textarea'),
+            ],
+        ],
+        'Véhicule' => [
+            'niveau2' => [
+                'lieuConservation' => field('Lieu de stationnement', 'text'),
+                'assuranceSpecifique' => field('Assurance spécifique', 'select', false, ['oui', 'non']),
+                'dateAchat' => field('Date d’achat', 'date'),
+                'prixAchat' => field('Prix d’achat', 'number'),
+                'description' => field('Description', 'textarea'),
+            ],
+        ],
     ];
 }
 

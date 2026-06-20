@@ -132,7 +132,7 @@ renderHeader($schema['label']);
     <thead>
       <tr>
         <?php if ($rubrique === 'immobilier'): ?>
-          <th>Type</th><th>Titre</th><th>Valeur globale</th><th>% PP</th><th>% Usufruit</th><th>Revenu brut global/an</th><th>Revenu net/an</th><th>Charge/an</th><th>Dette</th><th>Liens</th><th>Commentaire</th><th></th>
+          <th>Type</th><th>Titre</th><th>Valeur globale</th><th>% PP</th><th>% Usufruit</th><th>Revenu brut global/an</th><th>Revenu net/an</th><th>Charge/an</th><th>Liens</th><th>Infos</th><th></th>
         <?php elseif ($rubrique === 'revenus'): ?>
           <th>Type</th><th>Titre</th><th>Revenu/mois</th><th>Revenu/an</th><th>Liens</th><th>Commentaire</th><th></th>
         <?php elseif ($rubrique === 'mobilierFinancier'): ?>
@@ -143,7 +143,7 @@ renderHeader($schema['label']);
       </tr>
     </thead>
     <tbody>
-      <?php $emptyColspan = $rubrique === 'immobilier' ? 12 : ($rubrique === 'revenus' ? 7 : ($rubrique === 'mobilierFinancier' ? 7 : 9)); ?>
+      <?php $emptyColspan = $rubrique === 'immobilier' ? 11 : ($rubrique === 'revenus' ? 7 : ($rubrique === 'mobilierFinancier' ? 7 : 9)); ?>
       <?php if (!$entries): ?><tr><td colspan="<?= e($emptyColspan) ?>">Aucune fiche.</td></tr><?php endif; ?>
       <?php foreach ($entries as $entry): ?>
         <?php $n1 = $entry['niveau1'] ?? []; $metrics = rowMetrics($rubrique, $n1, $entry, $revenusParBien); ?>
@@ -171,7 +171,9 @@ renderHeader($schema['label']);
             <?php endif; ?>
             <?php if ($rubrique !== 'revenus'): ?>
               <td><?= e(euro($metrics['charge'])) ?></td>
-              <td><?= e(euro($metrics['debt'])) ?></td>
+              <?php if ($rubrique !== 'immobilier'): ?>
+                <td><?= e(euro($metrics['debt'])) ?></td>
+              <?php endif; ?>
             <?php endif; ?>
           <?php endif; ?>
           <td>
@@ -183,7 +185,13 @@ renderHeader($schema['label']);
               <?php endforeach; ?>
             <?php endif; ?>
           </td>
-          <td><?= e($entry['commentaire'] ?? '') ?></td>
+          <td>
+            <?php if ($rubrique === 'immobilier'): ?>
+              <?= renderImmobilierInfoChips($entry) ?>
+            <?php else: ?>
+              <?= e($entry['commentaire'] ?? '') ?>
+            <?php endif; ?>
+          </td>
           <td class="row-actions">
             <a class="button tiny secondary" href="form.php?rubrique=<?= e($rubrique) ?>&id=<?= e($entry['id']) ?>">Modifier</a>
             <button class="button tiny danger js-delete" data-rubrique="<?= e($rubrique) ?>" data-id="<?= e($entry['id']) ?>">Supprimer</button>
@@ -211,7 +219,9 @@ renderHeader($schema['label']);
           <?php endif; ?>
           <?php if ($rubrique !== 'revenus'): ?>
             <td><?= e(euro($totals['charge'])) ?></td>
-            <td><?= e(euro($totals['debt'])) ?></td>
+            <?php if ($rubrique !== 'immobilier'): ?>
+              <td><?= e(euro($totals['debt'])) ?></td>
+            <?php endif; ?>
           <?php endif; ?>
         <?php endif; ?>
         <td colspan="3"></td>
@@ -308,15 +318,51 @@ function renderFinancePie(string $title, ?array $data, string $emptyLabel): stri
     return ob_get_clean();
 }
 
+function renderImmobilierInfoChips(array $entry): string
+{
+    $chips = [];
+    $id = (string)($entry['id'] ?? '');
+    $formUrl = 'form.php?rubrique=immobilier&id=' . rawurlencode($id);
+    $n2 = $entry['niveau2'] ?? [];
+    $commentaire = trim((string)($entry['commentaire'] ?? ''));
+    if ($commentaire !== '') {
+        $chips[] = '<a class="link-chip" href="' . e($formUrl) . '" title="' . e($commentaire) . '">Commentaire</a>';
+    }
+    $gestionnaire = trim((string)($n2['administrateurBien'] ?? ''));
+    if ($gestionnaire !== '') {
+        $url = trim((string)($n2['administrateurBienUrl'] ?? ''));
+        $href = $url !== '' ? $url : $formUrl;
+        $target = $url !== '' ? ' target="_blank" rel="noopener noreferrer"' : '';
+        $chips[] = '<a class="link-chip" href="' . e($href) . '"' . $target . ' title="' . e($gestionnaire) . '">Gestion</a>';
+    }
+    $syndic = trim((string)($n2['syndicBien'] ?? ''));
+    if ($syndic !== '') {
+        $url = trim((string)($n2['syndicBienUrl'] ?? ''));
+        $href = $url !== '' ? $url : $formUrl;
+        $target = $url !== '' ? ' target="_blank" rel="noopener noreferrer"' : '';
+        $chips[] = '<a class="link-chip" href="' . e($href) . '"' . $target . ' title="' . e($syndic) . '">Syndic</a>';
+    }
+    return implode('', $chips);
+}
+
 function rowMetrics(string $rubrique, array $n1, array $entry = [], array $revenusParBien = []): array
 {
     return [
         'value' => in_array($rubrique, ['immobilier', 'mobilierFinancier'], true) ? patrimonialValue($n1, $rubrique) : 0.0,
         'revenue' => rowRevenue($rubrique, $n1, $entry, $revenusParBien),
         'netRevenue' => $rubrique === 'immobilier' ? rowImmobilierNetRevenue($n1, $entry) : 0.0,
-        'charge' => $rubrique === 'chargesAnnuelles' ? num($n1['montantAnnuel'] ?? 0) : ($rubrique === 'dettesCredits' ? num($n1['mensualiteAnnuelle'] ?? 0) : 0.0),
+        'charge' => $rubrique === 'chargesAnnuelles' ? num($n1['montantAnnuel'] ?? 0) : ($rubrique === 'dettesCredits' ? num($n1['mensualiteAnnuelle'] ?? 0) : ($rubrique === 'immobilier' ? immobilierAnnualCharges($entry['niveau2'] ?? []) : 0.0)),
         'debt' => $rubrique === 'dettesCredits' ? num($n1['capitalRestantDu'] ?? 0) : 0.0,
     ];
+}
+
+function immobilierAnnualCharges(array $niveau2): float
+{
+    return num($niveau2['chargesNonRecuperablesAnnuelles'] ?? $niveau2['chargesNonRecuperables'] ?? 0)
+        + num($niveau2['taxeFonciereAnnuelle'] ?? $niveau2['taxeFonciere'] ?? 0)
+        + num($niveau2['assurancePNOAnnuelle'] ?? $niveau2['assurancePNO'] ?? 0)
+        + num($niveau2['administrateurBienFraisAnnuel'] ?? $niveau2['administrateurBienFrais'] ?? 0)
+        + num($niveau2['syndicBienFraisAnnuel'] ?? $niveau2['syndicBienFrais'] ?? 0);
 }
 
 function rowRevenue(string $rubrique, array $n1, array $entry, array $revenusParBien): float

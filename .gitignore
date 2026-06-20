@@ -1,5 +1,5 @@
 data/users.json
-data/patrimoine.json
+data/patrimoine*.json
 data/patrimoine-*.json
 data/agent-requests/
 data/backups/

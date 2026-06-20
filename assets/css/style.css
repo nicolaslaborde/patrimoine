@@ -57,6 +57,29 @@ h1 { font-size: 1.35rem; margin: 0 0 2px; }
 h2 { font-size: .98rem; margin: 0; }
 p { margin: 0 0 6px; }
 .muted { color: var(--muted); }
+.fiche-nav-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 2px;
+}
+.fiche-nav-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #fff;
+  color: var(--primary);
+  font-weight: 900;
+  line-height: 1;
+}
+.fiche-nav-icon.disabled {
+  opacity: .35;
+  color: var(--muted);
+  pointer-events: none;
+}
 
 .actions { display: flex; gap: 5px; flex-wrap: wrap; }
 .actions.tight { margin-top: 8px; }
@@ -73,6 +96,11 @@ p { margin: 0 0 6px; }
   cursor: pointer;
 }
 .button.tiny { min-height: 24px; padding: 3px 7px; font-size: .86rem; }
+.button.disabled {
+  opacity: .45;
+  cursor: default;
+  pointer-events: none;
+}
 .primary { color: #fff; background: var(--primary); }
 .secondary { color: var(--secondary); background: #fff; border-color: var(--line); }
 .danger { color: #fff; background: var(--danger); }
@@ -456,6 +484,16 @@ table { width: 100%; border-collapse: collapse; min-width: 980px; }
   font-weight: 800;
   cursor: pointer;
 }
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.section-title-row h2 {
+  margin: 0;
+}
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -498,6 +536,19 @@ textarea { min-height: 54px; resize: vertical; }
 }
 .link-row.has-open-icon {
   grid-template-columns: 1.4fr 1fr auto auto;
+}
+.history-box {
+  display: grid;
+  gap: 6px;
+}
+.history-row {
+  display: grid;
+  grid-template-columns: 140px minmax(220px, 1fr) minmax(220px, .8fr) auto;
+  gap: 5px;
+  align-items: start;
+}
+.history-row textarea {
+  min-height: 34px;
 }
 .url-open-field {
   display: grid;
@@ -563,6 +614,7 @@ textarea { min-height: 54px; resize: vertical; }
   .donut-wrap { grid-template-columns: 1fr; justify-items: center; }
   .chart-legend { width: 100%; }
   .link-row { grid-template-columns: 1fr; }
+  .history-row { grid-template-columns: 1fr; }
   .periodic-amount { grid-template-columns: 1fr 1fr; }
 }
 
