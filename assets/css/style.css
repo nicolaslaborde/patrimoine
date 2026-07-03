@@ -318,7 +318,7 @@ p { margin: 0 0 6px; }
 
 .property-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
   gap: 7px;
 }
 .property-tile {
@@ -719,6 +719,26 @@ textarea { min-height: 54px; resize: vertical; }
   .history-row { grid-template-columns: 1fr; }
   .periodic-amount { grid-template-columns: 1fr 1fr; }
   .fiche-head-fields { grid-template-columns: 1fr; }
+  .property-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .property-tile {
+    grid-template-rows: 58px auto auto;
+    min-height: 120px;
+    padding: 7px;
+  }
+  .property-image {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+@media (max-width: 420px) {
+  .property-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .property-tile strong {
+    font-size: .82rem;
+  }
+  .property-tile span:last-child {
+    font-size: .72rem;
+  }
 }
 
 @media print {
