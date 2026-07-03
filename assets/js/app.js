@@ -44,6 +44,63 @@ if (printSynthesis) {
   });
 }
 
+const printRubrique = document.querySelector("#printRubrique");
+if (printRubrique) {
+  printRubrique.addEventListener("click", () => {
+    const restore = [];
+    const tableOrder = [];
+    document.querySelectorAll("[data-filter-row][hidden]").forEach((row) => {
+      restore.push([row, true]);
+      row.hidden = false;
+    });
+    document.querySelectorAll(".filter-empty-row").forEach((row) => {
+      restore.push([row, row.hidden]);
+      row.hidden = true;
+    });
+    document.querySelectorAll(".print-rubrique-table").forEach((table) => {
+      tableOrder.push([table, sortRubriqueTableForPrint(table)]);
+    });
+    document.querySelectorAll("table[id]").forEach(refreshFilteredTotals);
+
+    const restorePrintState = () => {
+      tableOrder.forEach(([table, rows]) => {
+        const tbody = table.querySelector("tbody");
+        if (!tbody) return;
+        rows.forEach((row) => tbody.appendChild(row));
+      });
+      restore.forEach(([row, wasHidden]) => {
+        row.hidden = wasHidden;
+      });
+      document.querySelectorAll("table[id]").forEach(applyTableFilters);
+    };
+    window.addEventListener("afterprint", restorePrintState, { once: true });
+    window.print();
+  });
+}
+
+function sortRubriqueTableForPrint(table) {
+  const tbody = table.querySelector("tbody");
+  if (!tbody) return [];
+  const column = Number(table.dataset.printSortColumn || 0);
+  const type = table.dataset.printSortType || "text";
+  const direction = table.dataset.printSortDirection || "asc";
+  const rows = [...tbody.querySelectorAll("tr")];
+  const sortableRows = rows.filter((row) => row.children.length > column && !row.classList.contains("filter-empty-row"));
+  sortableRows.sort((a, b) => {
+    const aCell = a.children[column];
+    const bCell = b.children[column];
+    const aValue = aCell?.dataset.sortValue ?? aCell?.textContent ?? "";
+    const bValue = bCell?.dataset.sortValue ?? bCell?.textContent ?? "";
+    const result = type === "number"
+      ? Number(aValue || 0) - Number(bValue || 0)
+      : String(aValue).localeCompare(String(bValue), "fr", { sensitivity: "base" });
+    return direction === "desc" ? -result : result;
+  });
+  sortableRows.forEach((row) => tbody.appendChild(row));
+  rows.filter((row) => row.classList.contains("filter-empty-row")).forEach((row) => tbody.appendChild(row));
+  return rows;
+}
+
 document.querySelectorAll(".table-sort").forEach((button) => {
   button.addEventListener("click", () => {
     const table = document.querySelector(`#${button.dataset.sortTable}`);
@@ -56,7 +113,7 @@ document.querySelectorAll(".table-sort").forEach((button) => {
     button.dataset.sortDirection = direction;
     button.setAttribute("aria-sort", direction === "asc" ? "ascending" : "descending");
 
-    const rows = [...tbody.querySelectorAll("tr")].filter((row) => row.children.length > column);
+    const rows = [...tbody.querySelectorAll("tr")].filter((row) => row.children.length > column && !row.classList.contains("filter-empty-row"));
     rows.sort((a, b) => {
       const aCell = a.children[column];
       const bCell = b.children[column];
@@ -68,6 +125,8 @@ document.querySelectorAll(".table-sort").forEach((button) => {
       return direction === "asc" ? result : -result;
     });
     rows.forEach((row) => tbody.appendChild(row));
+    const emptyRow = tbody.querySelector(".filter-empty-row");
+    if (emptyRow) tbody.appendChild(emptyRow);
   });
 });
 

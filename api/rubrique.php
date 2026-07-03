@@ -107,8 +107,8 @@ function sanitizeFiche(string $rubrique, array $input, array $existing = []): ar
         'titre' => trim((string)($input['titre'] ?? '')),
         'createdAt' => $existing['createdAt'] ?? nowIso(),
         'updatedAt' => nowIso(),
-        'niveau1' => sanitizeLevel($input['niveau1'] ?? [], $schema['niveau1']),
-        'niveau2' => sanitizeLevel($input['niveau2'] ?? [], $schema['niveau2']),
+        'niveau1' => sanitizeLevel($input['niveau1'] ?? [], $schema['niveau1'], $existing['niveau1'] ?? []),
+        'niveau2' => sanitizeLevel($input['niveau2'] ?? [], $schema['niveau2'], $existing['niveau2'] ?? []),
         'liens' => sanitizeLinks($input['liens'] ?? []),
         'historique' => $rubrique === 'immobilier' ? sanitizeHistorique($input['historique'] ?? []) : ($existing['historique'] ?? []),
         'commentaire' => trim((string)($input['commentaire'] ?? '')),
@@ -124,9 +124,9 @@ function sanitizeFiche(string $rubrique, array $input, array $existing = []): ar
     return $entry;
 }
 
-function sanitizeLevel(array $values, array $schema): array
+function sanitizeLevel(array $values, array $schema, array $existing = []): array
 {
-    $out = [];
+    $out = $existing;
     foreach ($schema as $field => $def) {
         if (!empty($def['periodic'])) {
             $raw = is_array($values[$field] ?? null) ? $values[$field] : [];

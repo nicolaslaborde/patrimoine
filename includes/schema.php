@@ -107,6 +107,7 @@ function appSchema(): array
             'types' => ['Résidence principale', 'Résidence secondaire', 'Bien locatif nu', 'Bien locatif meublé', 'Garage', 'Terrain', 'Local commercial', 'Parts de SCI immobilière', 'Autre bien immobilier'],
             'niveau1Required' => ['type', 'titre', 'valeurActuelle', 'quotePartDetenue'],
             'niveau1' => [
+                'typeBien' => field('Type de bien', 'select', false, ['Maison', 'Appartement', 'Immeuble', 'Terrain', 'Parking', 'Parts de SCI immobilière', 'Autre']),
                 'adresse' => field('Adresse', 'text'),
                 'lienWeb' => field('Lien web', 'url'),
                 'valeurActuelle' => field('Valeur actuelle', 'number', true),
@@ -453,6 +454,12 @@ function immobilierTypeSchemas(): array
                 'administrateurBienMotDePasse' => field('Mot de passe gérant / SCI', 'text'),
                 'administrateurBienFrais' => field('Frais gérant / SCI', 'number', false, [], true, 'administrateurBienFrais'),
                 'administrateurBienInfos' => field('Infos gérant / SCI', 'textarea'),
+                'syndicBien' => field('Syndic du bien', 'text'),
+                'syndicBienUrl' => field('Lien web syndic du bien', 'url'),
+                'syndicBienIdentifiant' => field('Identifiant syndic du bien', 'text'),
+                'syndicBienMotDePasse' => field('Mot de passe syndic du bien', 'text'),
+                'syndicBienFrais' => field('Frais syndic', 'number', false, [], true, 'syndicBienFrais'),
+                'syndicBienInfos' => field('Infos syndic du bien', 'textarea'),
                 'regimeFiscal' => field('Régime fiscal de la SCI', 'select', false, ['SCI IR', 'SCI IS', 'Micro-foncier', 'Réel foncier', 'Autre']),
                 'loyer' => field('Revenu distribué / estimé', 'number', false, [], true, 'loyer'),
                 'chargesNonRecuperables' => field('Charges non récupérables', 'number', false, [], true, 'chargesNonRecuperables'),
@@ -460,18 +467,13 @@ function immobilierTypeSchemas(): array
                 'assurancePNO' => field('Assurance PNO', 'number', false, [], true, 'assurancePNO'),
             ],
         ],
-        'Terrain' => [
+        'Terrain' => array_replace_recursive($locatif, [
             'niveau2' => [
                 'surfaceM2' => field('Surface m²', 'number'),
                 'dateAcquisition' => field('Date d’acquisition', 'date'),
                 'prixAchat' => field('Prix d’achat', 'number'),
-                'loyer' => field('Loyer', 'number', false, [], true, 'loyer'),
-                'chargesNonRecuperables' => field('Charges non récupérables', 'number', false, [], true, 'chargesNonRecuperables'),
-                'assurancePNO' => field('Assurance propriétaire', 'number', false, [], true, 'assurancePNO'),
-                'regimeFiscal' => field('Régime fiscal', 'select', false, ['Micro-foncier', 'Réel foncier', 'Micro-BIC', 'LMNP réel', 'LMP', 'SCI IR', 'SCI IS', 'Autre']),
-                'taxeFonciere' => field('Taxe foncière', 'number', false, [], true, 'taxeFonciere'),
             ],
-        ],
+        ]),
         'Autre bien immobilier' => $locatif,
     ];
 }
@@ -772,9 +774,9 @@ function observedFormUsage(): array
 {
     $chargesN1 = ['categorieDetaillee', 'bienConcerne', 'montant', 'payeur'];
     $chargesN2 = ['fournisseur', 'organisme'];
-    $immobilierN1 = ['adresse', 'lienWeb', 'valeurActuelle', 'modeDetention', 'quotePartDetenue', 'pourcentageUsufruit'];
+    $immobilierN1 = ['typeBien', 'adresse', 'lienWeb', 'valeurActuelle', 'modeDetention', 'quotePartDetenue', 'pourcentageUsufruit'];
     $immobilierCharges = ['loyer', 'chargesNonRecuperables', 'taxeFonciere', 'assurancePNO', 'regimeFiscal'];
-    $locatifN2 = array_merge([
+    $immobilierGestion = [
         'administrateurBien',
         'administrateurBienUrl',
         'administrateurBienIdentifiant',
@@ -787,9 +789,11 @@ function observedFormUsage(): array
         'syndicBienMotDePasse',
         'syndicBienFrais',
         'syndicBienInfos',
+    ];
+    $locatifN2 = array_merge([
         'surfaceM2',
         'locataireActuel',
-    ], $immobilierCharges);
+    ], $immobilierGestion, $immobilierCharges);
     $mobilierBaseN1 = ['etablissement', 'lienWeb', 'login', 'password', 'valeurActuelle', 'quotePartDetenue', 'liquidite'];
 
     return [
@@ -820,23 +824,23 @@ function observedFormUsage(): array
             'Bien locatif nu' => ['niveau1' => $immobilierN1, 'niveau2' => $locatifN2],
             'Résidence principale' => [
                 'niveau1' => $immobilierN1,
-                'niveau2' => ['loyer', 'chargesNonRecuperables', 'taxeFonciere', 'assurancePNO'],
+                'niveau2' => array_merge($immobilierGestion, ['loyer', 'chargesNonRecuperables', 'taxeFonciere', 'assurancePNO']),
             ],
             'Résidence secondaire' => [
                 'niveau1' => $immobilierN1,
-                'niveau2' => ['loyer', 'chargesNonRecuperables', 'taxeFonciere', 'assurancePNO', 'regimeFiscal'],
+                'niveau2' => array_merge($immobilierGestion, ['loyer', 'chargesNonRecuperables', 'taxeFonciere', 'assurancePNO', 'regimeFiscal']),
             ],
             'Parts de SCI immobilière' => [
                 'niveau1' => ['adresse', 'valeurActuelle', 'modeDetention', 'quotePartDetenue', 'pourcentageUsufruit'],
-                'niveau2' => $immobilierCharges,
+                'niveau2' => array_merge($immobilierGestion, $immobilierCharges),
             ],
             'Terrain' => [
-                'niveau1' => ['adresse', 'valeurActuelle', 'modeDetention', 'quotePartDetenue', 'pourcentageUsufruit'],
-                'niveau2' => $immobilierCharges,
+                'niveau1' => ['typeBien', 'adresse', 'valeurActuelle', 'modeDetention', 'quotePartDetenue', 'pourcentageUsufruit'],
+                'niveau2' => array_merge($immobilierGestion, $immobilierCharges),
             ],
             'Autre bien immobilier' => [
-                'niveau1' => ['adresse', 'valeurActuelle', 'modeDetention', 'quotePartDetenue'],
-                'niveau2' => ['loyer', 'chargesNonRecuperables', 'taxeFonciere', 'assurancePNO'],
+                'niveau1' => $immobilierN1,
+                'niveau2' => array_merge($immobilierGestion, ['loyer', 'chargesNonRecuperables', 'taxeFonciere', 'assurancePNO']),
             ],
         ],
         'mobilierFinancier' => [

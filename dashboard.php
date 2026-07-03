@@ -5,7 +5,6 @@ require_once __DIR__ . '/includes/calculations.php';
 
 $data = loadPatrimoine();
 $dashboard = calculateDashboard($data);
-$missing = getMissingInformation($data);
 $schema = appSchema();
 
 $liquidites = (float)$dashboard['liquiditesDisponibles'];
@@ -33,6 +32,17 @@ $monthlySlices = $monthlyAvailable >= 0
 $monthlySlices = array_values(array_filter($monthlySlices, fn(array $slice): bool => $slice['value'] > 0));
 $monthlyTotal = array_sum(array_column($monthlySlices, 'value'));
 $monthlyGradient = pieGradient($monthlySlices, $monthlyTotal);
+
+$incomeBreakdown = dashboardIncomeBreakdown($data['revenus'] ?? []);
+$cashflowRows = [
+    ['label' => 'Revenus / salaire', 'annual' => $incomeBreakdown['salary'], 'href' => 'rubrique.php?rubrique=revenus', 'class' => 'green'],
+    ['label' => 'Revenus immobilier', 'annual' => $incomeBreakdown['realEstate'], 'href' => 'rubrique.php?rubrique=revenus', 'class' => 'blue'],
+    ['label' => 'Revenus financiers', 'annual' => $incomeBreakdown['financial'], 'href' => 'rubrique.php?rubrique=revenus', 'class' => 'violet'],
+    ['label' => 'Dépenses', 'annual' => (float)$dashboard['chargesAnnuellesTotales'], 'href' => 'rubrique.php?rubrique=chargesAnnuelles', 'class' => 'amber'],
+];
+$maxCashflowAnnual = max(1.0, ...array_map(fn(array $row): float => abs((float)$row['annual']), $cashflowRows));
+$immobilierEntries = $data['immobilier'] ?? [];
+
 renderHeader('Tableau de bord');
 ?>
 <div class="page-head dense-head">
@@ -99,27 +109,55 @@ renderHeader('Tableau de bord');
   </article>
 </section>
 
-<section class="metrics compact-grid">
-  <?php
-  $metrics = [
-      'Patrimoine brut' => $dashboard['patrimoineBrutTotal'],
-      'Dettes' => $dashboard['dettesTotales'],
-      'Patrimoine net' => $dashboard['patrimoineNet'],
-      'Immobilier' => $dashboard['immobilierTotal'],
-      'Mobilier/financier' => $dashboard['mobilierFinancierTotal'],
-      'Liquidités' => $dashboard['liquiditesDisponibles'],
-      'Revenus/an' => $dashboard['revenusAnnuelsTotaux'],
-      'Charges/an' => $dashboard['chargesAnnuellesTotales'],
-      'Net estimé/an' => $dashboard['revenuNetAnnuelEstime'],
-      'Manquants' => $dashboard['nombreInformationsManquantes'],
-  ];
-  foreach ($metrics as $label => $value): ?>
-    <?php if ($label === 'Liquidités'): ?>
-      <a class="metric metric-link" href="liquidites.php"><span><?= e($label) ?></span><strong><?= e(euro((float)$value)) ?></strong></a>
-    <?php else: ?>
-      <article class="metric"><span><?= e($label) ?></span><strong><?= is_numeric($value) && $label !== 'Manquants' ? e(euro((float)$value)) : e($value) ?></strong></article>
+<section class="table-section cashflow-panel">
+  <h2>Flux revenus / dépenses</h2>
+  <div class="table-wrap">
+    <table class="dense-table dashboard-cashflow-table">
+      <thead><tr><th>Poste</th><th>Mensuel</th><th>Annuel</th><th>Proportion</th></tr></thead>
+      <tbody>
+      <?php foreach ($cashflowRows as $row): ?>
+        <?php $width = round((abs((float)$row['annual']) / $maxCashflowAnnual) * 100, 1); ?>
+        <tr>
+          <td><a class="dashboard-row-link" href="<?= e($row['href']) ?>"><?= e($row['label']) ?></a></td>
+          <td><?= e(euro((float)$row['annual'] / 12)) ?></td>
+          <td><?= e(euro((float)$row['annual'])) ?></td>
+          <td>
+            <div class="proportion-track" aria-label="<?= e($width) ?>%">
+              <span class="proportion-fill <?= e($row['class']) ?>" style="width: <?= e($width) ?>%"></span>
+            </div>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="real-estate-panel">
+  <div class="section-title-row">
+    <h2>Immobilier</h2>
+    <a class="button tiny secondary" href="rubrique.php?rubrique=immobilier">Voir la rubrique</a>
+  </div>
+  <div class="property-grid">
+    <?php if (!$immobilierEntries): ?>
+      <p class="muted">Aucun bien immobilier saisi.</p>
     <?php endif; ?>
-  <?php endforeach; ?>
+    <?php foreach ($immobilierEntries as $entry): ?>
+      <?php
+      $type = (string)($entry['type'] ?? '');
+      $niveau1 = $entry['niveau1'] ?? [];
+      $location = trim((string)($niveau1['adresse'] ?? ''));
+      $title = trim((string)($entry['titre'] ?? 'Bien immobilier'));
+      $typeBien = (string)($niveau1['typeBien'] ?? '');
+      $image = propertyImageFor($typeBien, $type, $title);
+      ?>
+      <a class="property-tile" href="form.php?rubrique=immobilier&id=<?= e($entry['id'] ?? '') ?>">
+        <img class="property-image" src="<?= e($image) ?>" alt="">
+        <strong><?= e($title) ?></strong>
+        <span><?= e($location !== '' ? $location : $type) ?></span>
+      </a>
+    <?php endforeach; ?>
+  </div>
 </section>
 
 <section class="card-grid dense-cards">
@@ -150,29 +188,6 @@ renderHeader('Tableau de bord');
     </article>
   <?php endforeach; ?>
 </section>
-
-<section class="table-section">
-  <h2>Informations manquantes niveau 1</h2>
-  <div class="table-wrap">
-    <table class="dense-table">
-      <thead><tr><th>Rubrique</th><th>Fiche</th><th>Champ</th><th>Importance</th><th></th></tr></thead>
-      <tbody>
-      <?php if (!$missing): ?>
-        <tr><td colspan="5">Aucune information manquante.</td></tr>
-      <?php endif; ?>
-      <?php foreach ($missing as $item): ?>
-        <tr>
-          <td><?= e($schema[$item['rubrique']]['label'] ?? $item['rubrique']) ?></td>
-          <td><?= e($item['entryLabel']) ?></td>
-          <td><?= e($item['field']) ?></td>
-          <td><span class="badge <?= e($item['importance']) ?>"><?= e($item['importance']) ?></span></td>
-          <td><a class="button tiny secondary" href="<?= $item['rubrique'] === 'profil' ? 'form.php?rubrique=profil' : 'form.php?rubrique=' . e($item['rubrique']) . '&id=' . e($item['entryId']) ?>">Modifier</a></td>
-        </tr>
-      <?php endforeach; ?>
-      </tbody>
-    </table>
-  </div>
-</section>
 <?php renderFooter(); ?>
 
 <?php
@@ -186,4 +201,75 @@ function pieGradient(array $slices, float $total): string
         $segments[] = $slice['color'] . ' ' . round($start, 2) . '% ' . round($cursor, 2) . '%';
     }
     return $segments ? implode(', ', $segments) : '#e5e7eb 0 100%';
+}
+
+function dashboardIncomeBreakdown(array $revenus): array
+{
+    $breakdown = ['salary' => 0.0, 'realEstate' => 0.0, 'financial' => 0.0];
+    foreach ($revenus as $revenu) {
+        $niveau1 = $revenu['niveau1'] ?? [];
+        $annual = num($niveau1['montantAnnuel'] ?? 0);
+        $type = mb_strtolower((string)($revenu['type'] ?? ''), 'UTF-8');
+        $title = mb_strtolower((string)($revenu['titre'] ?? ''), 'UTF-8');
+        $payer = mb_strtolower((string)($niveau1['organismePayeur'] ?? ''), 'UTF-8');
+        $source = (string)($revenu['sourceAutomatique'] ?? '');
+        $text = $type . ' ' . $title . ' ' . $payer;
+
+        if ($source === 'immobilierRegimeFiscal' || str_contains($text, 'immobilier') || str_contains($text, 'foncier')) {
+            $breakdown['realEstate'] += $annual;
+        } elseif (str_contains($text, 'financier') || str_contains($text, 'dividende') || str_contains($text, 'interet') || str_contains($text, 'intérêt') || str_contains($text, 'scpi') || str_contains($text, 'placement')) {
+            $breakdown['financial'] += $annual;
+        } else {
+            $breakdown['salary'] += $annual;
+        }
+    }
+    return $breakdown;
+}
+
+function propertyImageFor(string $typeBien, string $type, string $title): string
+{
+    $selected = mb_strtolower($typeBien, 'UTF-8');
+    $basePath = 'assets/img/immobilier/';
+    if ($selected === 'maison') {
+        return $basePath . 'maison.png';
+    }
+    if ($selected === 'appartement') {
+        return $basePath . 'appartement.png';
+    }
+    if ($selected === 'immeuble') {
+        return $basePath . 'immeuble.png';
+    }
+    if ($selected === 'terrain') {
+        return $basePath . 'terrain.png';
+    }
+    if ($selected === 'parking') {
+        return $basePath . 'parking.png';
+    }
+    if ($selected === 'parts de sci immobilière' || $selected === 'parts de sci') {
+        return $basePath . 'parts-sci.png';
+    }
+    if ($selected === 'autre') {
+        return $basePath . 'autre.png';
+    }
+
+    $text = mb_strtolower($type . ' ' . $title, 'UTF-8');
+    if (str_contains($text, 'terrain')) {
+        return $basePath . 'terrain.png';
+    }
+    if (str_contains($text, 'parking') || str_contains($text, 'garage') || str_contains($text, 'box')) {
+        return $basePath . 'parking.png';
+    }
+    if (str_contains($text, 'sci')) {
+        return $basePath . 'parts-sci.png';
+    }
+    if (str_contains($text, 'appartement') || str_contains($text, 'studio')) {
+        return $basePath . 'appartement.png';
+    }
+    if (str_contains($text, 'immeuble') || str_contains($text, 'locatif') || str_contains($text, 'commercial')) {
+        return $basePath . 'immeuble.png';
+    }
+    if (str_contains($text, 'autre')) {
+        return $basePath . 'autre.png';
+    }
+    return $basePath . 'maison.png';
 }

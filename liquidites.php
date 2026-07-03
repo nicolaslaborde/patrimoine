@@ -9,7 +9,7 @@ $total = 0.0;
 
 foreach (($data['mobilierFinancier'] ?? []) as $entry) {
     $n1 = $entry['niveau1'] ?? [];
-    if (($n1['liquidite'] ?? '') !== 'immédiate') {
+    if (!in_array(($n1['liquidite'] ?? ''), ['immédiate', 'immÃ©diate'], true)) {
         continue;
     }
     $value = num($n1['valeurActuelle'] ?? 0);
@@ -45,9 +45,18 @@ renderHeader('Sources des liquidités');
 </section>
 
 <div class="table-wrap">
-  <table class="dense-table">
+  <table id="liquidites-table" class="dense-table">
     <thead>
-      <tr><th>Type</th><th>Titre</th><th>Établissement</th><th>Valeur</th><th>Quote-part</th><th>Liquidité</th><th>Commentaire</th><th></th></tr>
+      <tr>
+        <th><?= sortHeader('liquidites-table', 0, 'text', 'Type') ?></th>
+        <th><?= sortHeader('liquidites-table', 1, 'text', 'Titre') ?></th>
+        <th><?= sortHeader('liquidites-table', 2, 'text', 'Établissement') ?></th>
+        <th><?= sortHeader('liquidites-table', 3, 'number', 'Valeur') ?></th>
+        <th><?= sortHeader('liquidites-table', 4, 'number', 'Quote-part') ?></th>
+        <th><?= sortHeader('liquidites-table', 5, 'text', 'Liquidité') ?></th>
+        <th><?= sortHeader('liquidites-table', 6, 'text', 'Commentaire') ?></th>
+        <th></th>
+      </tr>
     </thead>
     <tbody>
       <?php if (!$entries): ?>
@@ -55,13 +64,13 @@ renderHeader('Sources des liquidités');
       <?php endif; ?>
       <?php foreach ($entries as $entry): ?>
         <tr>
-          <td><?= e($entry['type']) ?></td>
-          <td><strong><?= e($entry['titre']) ?></strong></td>
-          <td><?= e($entry['etablissement']) ?></td>
-          <td><?= e(euro($entry['valeur'])) ?></td>
-          <td><?= e($entry['quotePart']) ?></td>
-          <td><?= e($entry['liquidite']) ?></td>
-          <td><?= e($entry['commentaire']) ?></td>
+          <td data-sort-value="<?= e($entry['type']) ?>"><?= e($entry['type']) ?></td>
+          <td data-sort-value="<?= e($entry['titre']) ?>"><strong><?= e($entry['titre']) ?></strong></td>
+          <td data-sort-value="<?= e($entry['etablissement']) ?>"><?= e($entry['etablissement']) ?></td>
+          <td data-sort-value="<?= e($entry['valeur']) ?>"><?= e(euro($entry['valeur'])) ?></td>
+          <td data-sort-value="<?= e($entry['quotePart']) ?>"><?= e($entry['quotePart']) ?></td>
+          <td data-sort-value="<?= e($entry['liquidite']) ?>"><?= e($entry['liquidite']) ?></td>
+          <td data-sort-value="<?= e($entry['commentaire']) ?>"><?= e($entry['commentaire']) ?></td>
           <td><a class="button tiny secondary" href="form.php?rubrique=mobilierFinancier&id=<?= e($entry['id']) ?>">Modifier</a></td>
         </tr>
       <?php endforeach; ?>
@@ -72,3 +81,9 @@ renderHeader('Sources des liquidités');
   </table>
 </div>
 <?php renderFooter(); ?>
+
+<?php
+function sortHeader(string $tableId, int $column, string $type, string $label): string
+{
+    return '<button class="table-sort" type="button" data-sort-table="' . e($tableId) . '" data-sort-column="' . e($column) . '" data-sort-type="' . e($type) . '">' . e($label) . '</button>';
+}

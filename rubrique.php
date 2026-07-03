@@ -19,23 +19,35 @@ if ($rubrique === 'revenus') {
 }
 $entries = $data[$rubrique] ?? [];
 $revenusParBien = $rubrique === 'immobilier' ? revenusByImmobilier($data['revenus'] ?? []) : [];
-$totals = ['value' => 0.0, 'globalValue' => 0.0, 'quotePartValue' => 0.0, 'usufruitValue' => 0.0, 'revenue' => 0.0, 'netRevenue' => 0.0, 'charge' => 0.0, 'debt' => 0.0];
+$totals = ['value' => 0.0, 'globalValue' => 0.0, 'quotePartValue' => 0.0, 'revenue' => 0.0, 'netRevenue' => 0.0, 'charge' => 0.0, 'debt' => 0.0];
 foreach ($entries as $entry) {
     $n1 = $entry['niveau1'] ?? [];
     $metrics = rowMetrics($rubrique, $n1, $entry, $revenusParBien);
     $totals['value'] += $metrics['value'];
     $totals['globalValue'] += $rubrique === 'immobilier' ? num($n1['valeurActuelle'] ?? 0) : 0.0;
     $totals['quotePartValue'] += $rubrique === 'immobilier' ? quotePartValue($n1) : 0.0;
-    $totals['usufruitValue'] += $rubrique === 'immobilier' ? usufruitFiscalValueUnder70($n1) : 0.0;
     $totals['revenue'] += $metrics['revenue'];
     $totals['netRevenue'] += $metrics['netRevenue'];
     $totals['charge'] += $metrics['charge'];
     $totals['debt'] += $metrics['debt'];
 }
+$printSorts = [
+    'chargesAnnuelles' => ['column' => 4, 'type' => 'number', 'direction' => 'desc'],
+    'immobilier' => ['column' => 3, 'type' => 'number', 'direction' => 'desc'],
+    'revenus' => ['column' => 2, 'type' => 'number', 'direction' => 'desc'],
+    'mobilierFinancier' => ['column' => 2, 'type' => 'number', 'direction' => 'desc'],
+];
+$printSort = $printSorts[$rubrique] ?? ['column' => 0, 'type' => 'text', 'direction' => 'asc'];
+$tableId = $rubrique === 'chargesAnnuelles'
+    ? 'charges-table'
+    : ($rubrique === 'mobilierFinancier' ? 'mobilier-financier-table' : 'rubrique-' . preg_replace('/[^a-zA-Z0-9_-]/', '-', $rubrique) . '-table');
 $chargesByType = $rubrique === 'chargesAnnuelles' ? chargePieData($entries, 'type') : null;
 $chargesByCategory = $rubrique === 'chargesAnnuelles' ? chargePieData($entries, 'categorieDetaillee') : null;
 $chargeCategoryOptions = $rubrique === 'chargesAnnuelles' ? (($schema['niveau1']['categorieDetaillee']['options'] ?? [])) : [];
 $revenusByType = $rubrique === 'revenus' ? revenuePieData($entries) : null;
+$immobilierUsufruitByType = $rubrique === 'immobilier' ? immobilierUsufruitPieData($entries) : null;
+$immobilierQuotePartByTitle = $rubrique === 'immobilier' ? immobilierQuotePartByTitlePieData($entries) : null;
+$mobilierValueByType = $rubrique === 'mobilierFinancier' ? mobilierValuePieData($entries) : null;
 renderHeader($schema['label']);
 ?>
 <div class="page-head dense-head">
@@ -43,7 +55,10 @@ renderHeader($schema['label']);
     <h1><?= e(pageH1($schema['label'])) ?></h1>
     <p class="muted"><?= count($entries) ?> fiche(s)</p>
   </div>
-  <a class="button primary" href="form.php?rubrique=<?= e($rubrique) ?>">Ajouter</a>
+  <div class="actions">
+    <button class="button secondary" type="button" id="printRubrique">Imprimer <?= e($schema['label']) ?></button>
+    <a class="button primary" href="form.php?rubrique=<?= e($rubrique) ?>">Ajouter</a>
+  </div>
 </div>
 
 <?php if ($rubrique === 'chargesAnnuelles'): ?>
@@ -59,13 +74,26 @@ renderHeader($schema['label']);
   </section>
 <?php endif; ?>
 
+<?php if ($rubrique === 'immobilier'): ?>
+  <section class="chart-view" aria-label="Répartition des valeurs immobilières">
+    <?= renderFinancePie('Usufruit par type', $immobilierUsufruitByType, 'Aucun bien saisi', $immobilierUsufruitByType['total'] ?? 0, 'usufruit') ?>
+    <?= renderFinancePie('% PP par titre', $immobilierQuotePartByTitle, 'Aucun bien saisi', $immobilierQuotePartByTitle['total'] ?? 0, '% PP') ?>
+  </section>
+<?php endif; ?>
+
+<?php if ($rubrique === 'mobilierFinancier'): ?>
+  <section class="chart-view single-chart-view" aria-label="Répartition de la valeur mobilier et financier">
+    <?= renderFinancePie('Valeur par type', $mobilierValueByType, 'Aucune valeur saisie', $mobilierValueByType['total'] ?? 0, 'valeur') ?>
+  </section>
+<?php endif; ?>
+
 <?php if ($rubrique === 'chargesAnnuelles'): ?>
   <div class="table-controls" aria-label="Filtres charges annuelles">
     <label class="table-filter-field">
       <span>Catégorie</span>
       <select
         class="table-filter"
-        data-filter-table="charges-table"
+        data-filter-table="<?= e($tableId) ?>"
         data-filter-key="categorie"
         data-filter-row-key="category"
         data-filter-scope="rubrique-chargesAnnuelles"
@@ -80,11 +108,11 @@ renderHeader($schema['label']);
 <?php endif; ?>
 
 <div class="table-wrap">
-  <table class="dense-table" <?= $rubrique === 'chargesAnnuelles' ? 'id="charges-table"' : ($rubrique === 'mobilierFinancier' ? 'id="mobilier-financier-table"' : '') ?>>
+  <table id="<?= e($tableId) ?>" class="dense-table print-rubrique-table" data-print-sort-column="<?= e($printSort['column']) ?>" data-print-sort-type="<?= e($printSort['type']) ?>" data-print-sort-direction="<?= e($printSort['direction']) ?>">
     <?php if ($rubrique === 'chargesAnnuelles'): ?>
     <thead>
       <tr>
-        <th>Type</th><th>Titre</th><th>Catégorie</th><th>Bien concerné</th><th><button class="table-sort" type="button" data-sort-table="charges-table" data-sort-column="4" data-sort-type="number">Coût/mois</button></th><th>Coût/an</th><th>Liens</th><th>Commentaire</th><th></th>
+        <th><?= sortHeader($tableId, 0, 'text', 'Type') ?></th><th><?= sortHeader($tableId, 1, 'text', 'Titre') ?></th><th><?= sortHeader($tableId, 2, 'text', 'Catégorie') ?></th><th><?= sortHeader($tableId, 3, 'text', 'Bien concerné') ?></th><th><?= sortHeader($tableId, 4, 'number', 'Coût/mois') ?></th><th><?= sortHeader($tableId, 5, 'number', 'Coût/an') ?></th><th class="print-hidden">Liens</th><th><?= sortHeader($tableId, 7, 'text', 'Commentaire') ?></th><th></th>
       </tr>
     </thead>
     <tbody>
@@ -97,18 +125,18 @@ renderHeader($schema['label']);
           data-monthly-value="<?= e(num($n1['montantMensuel'] ?? 0)) ?>"
           data-annual-value="<?= e(num($n1['montantAnnuel'] ?? 0)) ?>"
         >
-          <td><?= e($entry['type'] ?? '') ?></td>
-          <td><strong><?= e($entry['titre'] ?? '') ?></strong></td>
-          <td><?= e($n1['categorieDetaillee'] ?? '') ?></td>
-          <td><?= e($n1['bienConcerne'] ?? '') ?></td>
+          <td data-sort-value="<?= e($entry['type'] ?? '') ?>"><?= e($entry['type'] ?? '') ?></td>
+          <td data-sort-value="<?= e($entry['titre'] ?? '') ?>"><strong><?= e($entry['titre'] ?? '') ?></strong></td>
+          <td data-sort-value="<?= e($n1['categorieDetaillee'] ?? '') ?>"><?= e($n1['categorieDetaillee'] ?? '') ?></td>
+          <td data-sort-value="<?= e($n1['bienConcerne'] ?? '') ?>"><?= e($n1['bienConcerne'] ?? '') ?></td>
           <td data-sort-value="<?= e(num($n1['montantMensuel'] ?? 0)) ?>"><?= e(euro(num($n1['montantMensuel'] ?? 0))) ?></td>
-          <td><?= e(euro(num($n1['montantAnnuel'] ?? 0))) ?></td>
-          <td>
+          <td data-sort-value="<?= e(num($n1['montantAnnuel'] ?? 0)) ?>"><?= e(euro(num($n1['montantAnnuel'] ?? 0))) ?></td>
+          <td class="print-hidden">
             <?php foreach (($entry['liens'] ?? []) as $link): ?>
               <a class="link-chip" href="<?= e($link['url']) ?>" target="_blank" rel="noopener noreferrer"><?= e($link['description'] ?: 'Lien') ?></a>
             <?php endforeach; ?>
           </td>
-          <td><?= e($entry['commentaire'] ?? '') ?></td>
+          <td data-sort-value="<?= e($entry['commentaire'] ?? '') ?>"><?= e($entry['commentaire'] ?? '') ?></td>
           <td class="row-actions">
             <?php $isAutoImmobilierRevenu = $rubrique === 'revenus' && (($entry['sourceAutomatique'] ?? '') === 'immobilierRegimeFiscal'); ?>
             <a class="button tiny secondary" href="form.php?rubrique=<?= e($rubrique) ?>&id=<?= e($entry['id']) ?>"><?= $isAutoImmobilierRevenu ? 'Voir' : 'Modifier' ?></a>
@@ -125,58 +153,62 @@ renderHeader($schema['label']);
         <td colspan="4">Total</td>
         <td data-filter-total="monthly"><?= e(euro(sumChargesMonthly($entries))) ?></td>
         <td data-filter-total="annual"><?= e(euro($totals['charge'])) ?></td>
-        <td colspan="3"></td>
+        <td class="print-hidden"></td>
+        <td></td>
+        <td class="print-hidden"></td>
       </tr>
     </tfoot>
     <?php else: ?>
     <thead>
       <tr>
         <?php if ($rubrique === 'immobilier'): ?>
-          <th>Type</th><th>Titre</th><th>Valeur globale</th><th>% PP</th><th>% Usufruit</th><th>Revenu brut global/an</th><th>Revenu net/an</th><th>Charge/an</th><th>Liens</th><th>Infos</th><th></th>
+          <th><?= sortHeader($tableId, 0, 'text', 'Type') ?></th><th><?= sortHeader($tableId, 1, 'text', 'Titre') ?></th><th><?= sortHeader($tableId, 2, 'number', 'Valeur globale') ?></th><th><?= sortHeader($tableId, 3, 'number', '% de PP') ?></th><th><?= sortHeader($tableId, 4, 'number', 'Revenu brut global/an') ?></th><th><?= sortHeader($tableId, 5, 'number', 'Revenu net/an') ?></th><th><?= sortHeader($tableId, 6, 'number', 'Charge/an') ?></th><th class="print-hidden">Liens</th><th class="print-hidden">Infos</th><th></th>
         <?php elseif ($rubrique === 'revenus'): ?>
-          <th>Type</th><th>Titre</th><th>Revenu/mois</th><th>Revenu/an</th><th>Liens</th><th>Commentaire</th><th></th>
+          <th><?= sortHeader($tableId, 0, 'text', 'Type') ?></th><th><?= sortHeader($tableId, 1, 'text', 'Titre') ?></th><th><?= sortHeader($tableId, 2, 'number', 'Revenu/mois') ?></th><th><?= sortHeader($tableId, 3, 'number', 'Revenu/an') ?></th><th class="print-hidden">Liens</th><th><?= sortHeader($tableId, 5, 'text', 'Commentaire') ?></th><th></th>
         <?php elseif ($rubrique === 'mobilierFinancier'): ?>
-          <th><button class="table-sort" type="button" data-sort-table="mobilier-financier-table" data-sort-column="0" data-sort-type="text">Type</button></th><th>Titre</th><th><button class="table-sort" type="button" data-sort-table="mobilier-financier-table" data-sort-column="2" data-sort-type="number">Valeur</button></th><th><button class="table-sort" type="button" data-sort-table="mobilier-financier-table" data-sort-column="3" data-sort-type="text">Disponibilite</button></th><th>Liens</th><th>Commentaire</th><th></th>
+          <th><?= sortHeader($tableId, 0, 'text', 'Type') ?></th><th><?= sortHeader($tableId, 1, 'text', 'Titre') ?></th><th><?= sortHeader($tableId, 2, 'number', 'Valeur') ?></th><th><?= sortHeader($tableId, 3, 'text', 'Disponibilité') ?></th><th class="print-hidden">Liens</th><th><?= sortHeader($tableId, 5, 'text', 'Commentaire') ?></th><th></th>
         <?php else: ?>
-          <th>Type</th><th>Titre</th><th>Valeur</th><th>Revenu/an</th><th>Charge/an</th><th>Dette</th><th>Liens</th><th>Commentaire</th><th></th>
+          <th><?= sortHeader($tableId, 0, 'text', 'Type') ?></th><th><?= sortHeader($tableId, 1, 'text', 'Titre') ?></th><th><?= sortHeader($tableId, 2, 'number', 'Valeur') ?></th><th><?= sortHeader($tableId, 3, 'number', 'Revenu/an') ?></th><th><?= sortHeader($tableId, 4, 'number', 'Charge/an') ?></th><th><?= sortHeader($tableId, 5, 'number', 'Dette') ?></th><th class="print-hidden">Liens</th><th><?= sortHeader($tableId, 7, 'text', 'Commentaire') ?></th><th></th>
         <?php endif; ?>
       </tr>
     </thead>
     <tbody>
-      <?php $emptyColspan = $rubrique === 'immobilier' ? 11 : ($rubrique === 'revenus' ? 7 : ($rubrique === 'mobilierFinancier' ? 7 : 9)); ?>
+      <?php $emptyColspan = $rubrique === 'immobilier' ? 10 : ($rubrique === 'revenus' ? 7 : ($rubrique === 'mobilierFinancier' ? 7 : 9)); ?>
       <?php if (!$entries): ?><tr><td colspan="<?= e($emptyColspan) ?>">Aucune fiche.</td></tr><?php endif; ?>
       <?php foreach ($entries as $entry): ?>
         <?php $n1 = $entry['niveau1'] ?? []; $metrics = rowMetrics($rubrique, $n1, $entry, $revenusParBien); ?>
         <tr>
-          <td><?= e($entry['type'] ?? '') ?></td>
-          <td><strong><?= e($entry['titre'] ?? '') ?></strong></td>
+          <td data-sort-value="<?= e($entry['type'] ?? '') ?>"><?= e($entry['type'] ?? '') ?></td>
+          <td data-sort-value="<?= e($entry['titre'] ?? '') ?>"><strong><?= e($entry['titre'] ?? '') ?></strong></td>
           <?php if ($rubrique !== 'revenus'): ?>
             <?php $displayValue = $rubrique === 'immobilier' ? num($n1['valeurActuelle'] ?? 0) : $metrics['value']; ?>
             <td data-sort-value="<?= e($displayValue) ?>"><?= e(euro($displayValue)) ?></td>
           <?php endif; ?>
           <?php if ($rubrique === 'immobilier'): ?>
-            <td><?= e(formatEuroPercent(quotePartValue($n1), quotePartFactor($n1))) ?></td>
-            <td><?= e(formatEuroPercent(usufruitFiscalValueUnder70($n1), usufruitFiscalFactorUnder70($n1))) ?></td>
+            <?php $quotePartDisplayPercent = quotePartFactor($n1) * 100; ?>
+            <td data-sort-value="<?= e($quotePartDisplayPercent) ?>"><?= e(formatPercentFactor(quotePartFactor($n1))) ?></td>
           <?php endif; ?>
           <?php if ($rubrique === 'revenus'): ?>
-            <td><?= e(euro(num($n1['montantMensuel'] ?? (($metrics['revenue'] ?? 0) / 12)))) ?></td>
+            <?php $monthlyRevenue = num($n1['montantMensuel'] ?? (($metrics['revenue'] ?? 0) / 12)); ?>
+            <td data-sort-value="<?= e($monthlyRevenue) ?>"><?= e(euro($monthlyRevenue)) ?></td>
           <?php endif; ?>
           <?php if ($rubrique === 'mobilierFinancier'): ?>
-            <td><?= e($n1['liquidite'] ?? (($entry['niveau2'] ?? [])['disponibiliteFonds'] ?? '')) ?></td>
+            <?php $disponibilite = (string)($n1['liquidite'] ?? (($entry['niveau2'] ?? [])['disponibiliteFonds'] ?? '')); ?>
+            <td data-sort-value="<?= e($disponibilite) ?>"><?= e($disponibilite) ?></td>
           <?php endif; ?>
           <?php if ($rubrique !== 'mobilierFinancier'): ?>
-            <td><?= e(euro($metrics['revenue'])) ?></td>
+            <td data-sort-value="<?= e($metrics['revenue']) ?>"><?= e(euro($metrics['revenue'])) ?></td>
             <?php if ($rubrique === 'immobilier'): ?>
-              <td><?= e(euro($metrics['netRevenue'])) ?></td>
+              <td data-sort-value="<?= e($metrics['netRevenue']) ?>"><?= e(euro($metrics['netRevenue'])) ?></td>
             <?php endif; ?>
             <?php if ($rubrique !== 'revenus'): ?>
-              <td><?= e(euro($metrics['charge'])) ?></td>
+              <td data-sort-value="<?= e($metrics['charge']) ?>"><?= e(euro($metrics['charge'])) ?></td>
               <?php if ($rubrique !== 'immobilier'): ?>
-                <td><?= e(euro($metrics['debt'])) ?></td>
+                <td data-sort-value="<?= e($metrics['debt']) ?>"><?= e(euro($metrics['debt'])) ?></td>
               <?php endif; ?>
             <?php endif; ?>
           <?php endif; ?>
-          <td>
+          <td class="print-hidden">
             <?php if ($rubrique === 'immobilier' && trim((string)($n1['lienWeb'] ?? '')) !== ''): ?>
               <a class="link-chip" href="<?= e($n1['lienWeb']) ?>" target="_blank" rel="noopener noreferrer">Lien web</a>
             <?php else: ?>
@@ -185,13 +217,11 @@ renderHeader($schema['label']);
               <?php endforeach; ?>
             <?php endif; ?>
           </td>
-          <td>
-            <?php if ($rubrique === 'immobilier'): ?>
-              <?= renderImmobilierInfoChips($entry) ?>
-            <?php else: ?>
-              <?= e($entry['commentaire'] ?? '') ?>
-            <?php endif; ?>
-          </td>
+          <?php if ($rubrique === 'immobilier'): ?>
+            <td class="print-hidden"><?= renderImmobilierInfoChips($entry) ?></td>
+          <?php else: ?>
+            <td data-sort-value="<?= e($entry['commentaire'] ?? '') ?>"><?= e($entry['commentaire'] ?? '') ?></td>
+          <?php endif; ?>
           <td class="row-actions">
             <a class="button tiny secondary" href="form.php?rubrique=<?= e($rubrique) ?>&id=<?= e($entry['id']) ?>">Modifier</a>
             <button class="button tiny danger js-delete" data-rubrique="<?= e($rubrique) ?>" data-id="<?= e($entry['id']) ?>">Supprimer</button>
@@ -206,8 +236,7 @@ renderHeader($schema['label']);
           <td><?= e(euro($rubrique === 'immobilier' ? $totals['globalValue'] : $totals['value'])) ?></td>
         <?php endif; ?>
         <?php if ($rubrique === 'immobilier'): ?>
-          <td><?= e(euro($totals['quotePartValue'])) ?></td>
-          <td><?= e(euro($totals['usufruitValue'])) ?></td>
+          <td></td>
         <?php endif; ?>
         <?php if ($rubrique === 'revenus'): ?>
           <td><?= e(euro($totals['revenue'] / 12)) ?></td>
@@ -224,7 +253,16 @@ renderHeader($schema['label']);
             <?php endif; ?>
           <?php endif; ?>
         <?php endif; ?>
-        <td colspan="3"></td>
+        <?php if ($rubrique === 'mobilierFinancier'): ?>
+          <td></td>
+        <?php endif; ?>
+        <td class="print-hidden"></td>
+        <?php if ($rubrique === 'immobilier'): ?>
+          <td class="print-hidden"></td>
+        <?php else: ?>
+          <td></td>
+        <?php endif; ?>
+        <td class="print-hidden"></td>
       </tr>
     </tfoot>
     <?php endif; ?>
@@ -238,6 +276,11 @@ function sumChargesMonthly(array $entries): float
     return array_reduce($entries, fn(float $sum, array $entry): float => $sum + num(($entry['niveau1'] ?? [])['montantMensuel'] ?? 0), 0.0);
 }
 
+function sortHeader(string $tableId, int $column, string $type, string $label): string
+{
+    return '<button class="table-sort" type="button" data-sort-table="' . e($tableId) . '" data-sort-column="' . e($column) . '" data-sort-type="' . e($type) . '">' . e($label) . '</button>';
+}
+
 function chargePieData(array $entries, string $field): array
 {
     return pieDataFromEntries($entries, function (array $entry) use ($field): string {
@@ -249,6 +292,21 @@ function chargePieData(array $entries, string $field): array
 function revenuePieData(array $entries): array
 {
     return pieDataFromEntries($entries, fn(array $entry): string => (string)($entry['type'] ?? ''), fn(array $entry): float => num(($entry['niveau1'] ?? [])['montantAnnuel'] ?? 0));
+}
+
+function immobilierUsufruitPieData(array $entries): array
+{
+    return pieDataFromEntries($entries, fn(array $entry): string => (string)($entry['type'] ?? ''), fn(array $entry): float => usufruitFiscalValueUnder70($entry['niveau1'] ?? []));
+}
+
+function immobilierQuotePartByTitlePieData(array $entries): array
+{
+    return pieDataFromEntries($entries, fn(array $entry): string => (string)($entry['titre'] ?? ''), fn(array $entry): float => quotePartValue($entry['niveau1'] ?? []));
+}
+
+function mobilierValuePieData(array $entries): array
+{
+    return pieDataFromEntries($entries, fn(array $entry): string => (string)($entry['type'] ?? ''), fn(array $entry): float => patrimonialValue($entry['niveau1'] ?? [], 'mobilierFinancier'));
 }
 
 function pieDataFromEntries(array $entries, callable $labelForEntry, callable $valueForEntry): array
@@ -285,9 +343,10 @@ function pieDataFromEntries(array $entries, callable $labelForEntry, callable $v
     ];
 }
 
-function renderFinancePie(string $title, ?array $data, string $emptyLabel): string
+function renderFinancePie(string $title, ?array $data, string $emptyLabel, ?float $centerValue = null, string $centerLabel = '/mois'): string
 {
     $data ??= ['total' => 0, 'slices' => [], 'gradient' => '#e5e7eb 0 100%'];
+    $centerValue ??= ((float)$data['total']) / 12;
     ob_start();
     ?>
     <article class="chart-panel chart-donut-panel">
@@ -297,8 +356,8 @@ function renderFinancePie(string $title, ?array $data, string $emptyLabel): stri
       </div>
       <div class="donut-wrap">
         <div class="donut" style="--donut: conic-gradient(<?= e($data['gradient']) ?>);">
-          <span><?= e(euro($data['total'] / 12)) ?></span>
-          <small>/mois</small>
+          <span><?= e(euro($centerValue)) ?></span>
+          <small><?= e($centerLabel) ?></small>
         </div>
         <ul class="chart-legend">
           <?php foreach (array_slice($data['slices'], 0, 8) as $slice): ?>

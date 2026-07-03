@@ -113,7 +113,10 @@ renderHeader(($id ? 'Modifier' : 'Ajouter') . ' - ' . $schema['label']);
 
 <form id="ficheForm" class="form-compact" data-rubrique="<?= e($rubrique) ?>" data-id="<?= e((string)$id) ?>" data-is-profil="<?= $rubrique === 'profil' ? '1' : '0' ?>">
   <?php if ($rubrique !== 'profil'): ?>
-    <section class="form-band">
+    <section class="form-band fiche-head-fields">
+      <label>Titre de la fiche <span class="required-star">*</span>
+        <input name="titre" value="<?= e($entry['titre'] ?? '') ?>" required>
+      </label>
       <label>Type de fiche <span class="required-star">*</span>
         <select name="type" required data-type-specific="1">
           <option value="">Choisir...</option>
@@ -122,9 +125,9 @@ renderHeader(($id ? 'Modifier' : 'Ajouter') . ' - ' . $schema['label']);
           <?php endforeach; ?>
         </select>
       </label>
-      <label>Titre de la fiche <span class="required-star">*</span>
-        <input name="titre" value="<?= e($entry['titre'] ?? '') ?>" required>
-      </label>
+      <?php if ($rubrique === 'immobilier' && isset($schema['niveau1']['typeBien'])): ?>
+        <?= renderField('typeBien', $schema['niveau1']['typeBien'], ($entry['niveau1'] ?? [])['typeBien'] ?? '', 'niveau1', false) ?>
+      <?php endif; ?>
     </section>
   <?php endif; ?>
 
@@ -132,6 +135,7 @@ renderHeader(($id ? 'Modifier' : 'Ajouter') . ' - ' . $schema['label']);
     <h2>1. Informations minimales pour le bilan patrimonial</h2>
     <div class="form-grid">
       <?php foreach ($schema['niveau1'] as $field => $def): ?>
+        <?php if ($rubrique === 'immobilier' && $field === 'typeBien') { continue; } ?>
         <?= renderField($field, $def, ($entry['niveau1'] ?? [])[$field] ?? null, 'niveau1', in_array($field, $schema['niveau1Required'], true)) ?>
       <?php endforeach; ?>
     </div>

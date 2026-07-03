@@ -178,10 +178,16 @@ if (ficheForm) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+    const result = await response.json();
     if (!response.ok) {
-      alert((await response.json()).error || "Enregistrement impossible");
+      alert(result.error || "Enregistrement impossible");
       return;
     }
-    location.href = isProfil ? "dashboard.php" : `rubrique.php?rubrique=${encodeURIComponent(rubrique)}`;
+    if (!isProfil && !id && result.id) {
+      ficheForm.dataset.id = result.id;
+      const url = new URL(location.href);
+      url.searchParams.set("id", result.id);
+      history.replaceState(null, "", url.toString());
+    }
   });
 }
