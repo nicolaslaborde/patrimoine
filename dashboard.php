@@ -209,15 +209,15 @@ function dashboardIncomeBreakdown(array $revenus): array
     foreach ($revenus as $revenu) {
         $niveau1 = $revenu['niveau1'] ?? [];
         $annual = num($niveau1['montantAnnuel'] ?? 0);
-        $type = mb_strtolower((string)($revenu['type'] ?? ''), 'UTF-8');
-        $title = mb_strtolower((string)($revenu['titre'] ?? ''), 'UTF-8');
-        $payer = mb_strtolower((string)($niveau1['organismePayeur'] ?? ''), 'UTF-8');
+        $type = textLower((string)($revenu['type'] ?? ''));
+        $title = textLower((string)($revenu['titre'] ?? ''));
+        $payer = textLower((string)($niveau1['organismePayeur'] ?? ''));
         $source = (string)($revenu['sourceAutomatique'] ?? '');
         $text = $type . ' ' . $title . ' ' . $payer;
 
-        if ($source === 'immobilierRegimeFiscal' || str_contains($text, 'immobilier') || str_contains($text, 'foncier')) {
+        if ($source === 'immobilierRegimeFiscal' || textContains($text, 'immobilier') || textContains($text, 'foncier')) {
             $breakdown['realEstate'] += $annual;
-        } elseif (str_contains($text, 'financier') || str_contains($text, 'dividende') || str_contains($text, 'interet') || str_contains($text, 'intérêt') || str_contains($text, 'scpi') || str_contains($text, 'placement')) {
+        } elseif (textContains($text, 'financier') || textContains($text, 'dividende') || textContains($text, 'interet') || textContains($text, 'intérêt') || textContains($text, 'scpi') || textContains($text, 'placement')) {
             $breakdown['financial'] += $annual;
         } else {
             $breakdown['salary'] += $annual;
@@ -228,7 +228,7 @@ function dashboardIncomeBreakdown(array $revenus): array
 
 function propertyImageFor(string $typeBien, string $type, string $title): string
 {
-    $selected = mb_strtolower($typeBien, 'UTF-8');
+    $selected = textLower($typeBien);
     $basePath = 'assets/img/immobilier/';
     if ($selected === 'maison') {
         return $basePath . 'maison.png';
@@ -252,23 +252,23 @@ function propertyImageFor(string $typeBien, string $type, string $title): string
         return $basePath . 'autre.png';
     }
 
-    $text = mb_strtolower($type . ' ' . $title, 'UTF-8');
-    if (str_contains($text, 'terrain')) {
+    $text = textLower($type . ' ' . $title);
+    if (textContains($text, 'terrain')) {
         return $basePath . 'terrain.png';
     }
-    if (str_contains($text, 'parking') || str_contains($text, 'garage') || str_contains($text, 'box')) {
+    if (textContains($text, 'parking') || textContains($text, 'garage') || textContains($text, 'box')) {
         return $basePath . 'parking.png';
     }
-    if (str_contains($text, 'sci')) {
+    if (textContains($text, 'sci')) {
         return $basePath . 'parts-sci.png';
     }
-    if (str_contains($text, 'appartement') || str_contains($text, 'studio')) {
+    if (textContains($text, 'appartement') || textContains($text, 'studio')) {
         return $basePath . 'appartement.png';
     }
-    if (str_contains($text, 'immeuble') || str_contains($text, 'locatif') || str_contains($text, 'commercial')) {
+    if (textContains($text, 'immeuble') || textContains($text, 'locatif') || textContains($text, 'commercial')) {
         return $basePath . 'immeuble.png';
     }
-    if (str_contains($text, 'autre')) {
+    if (textContains($text, 'autre')) {
         return $basePath . 'autre.png';
     }
     return $basePath . 'maison.png';

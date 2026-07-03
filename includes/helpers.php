@@ -56,3 +56,22 @@ function validUrl(string $url): bool
 {
     return (bool)preg_match('#^https?://#i', $url) && filter_var($url, FILTER_VALIDATE_URL);
 }
+
+function textLower(string $value): string
+{
+    if (function_exists('mb_strtolower')) {
+        return mb_strtolower($value, 'UTF-8');
+    }
+    return strtolower($value);
+}
+
+function textContains(string $haystack, string $needle): bool
+{
+    if ($needle === '') {
+        return true;
+    }
+    if (function_exists('str_contains')) {
+        return str_contains($haystack, $needle);
+    }
+    return strpos($haystack, $needle) !== false;
+}
